@@ -1,0 +1,331 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Roles & Administration
+// ---------------------------------------------------------------------------
+
+enum Role {
+  ADMIN
+  SUPER_ADMIN
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         Role     @default(ADMIN)
+  image        String?
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  blogs     Blog[]
+  inquiries Inquiry[]
+  sessions  AdminSession[]
+}
+
+// Lightweight session store for the admin dashboard.
+model AdminSession {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+// ---------------------------------------------------------------------------
+// Catalog: Categories & Products
+// ---------------------------------------------------------------------------
+
+model Category {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  description String?
+  image       String?
+  position    Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  products Product[]
+
+  @@index([slug])
+}
+
+enum ProductStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum TradeType {
+  EXPORT
+  IMPORT
+  BOTH
+}
+
+model Product {
+  id          String       @id @default(cuid())
+  title       String
+  slug        String       @unique
+  summary     String
+  description String
+
+  categoryId String
+  category   Category     @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+
+  // Structured extras (packaging, specifications, certifications, pricing)
+  specs        Json    @default("{}")
+  images       String[] @default([])
+  attachments  String[] @default([])
+  tradeType    TradeType @default(EXPORT)
+  origin       String?
+  unit         String?
+  price        Decimal? @db.Decimal(14, 2)
+  status       ProductStatus @default(DRAFT)
+  availability Int? // stock level, null = unlimited, 0 = out of stock
+  isFeatured   Boolean @default(false)
+  seoTitle     String?
+  seoDescription String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([categoryId])
+  @@index([status])
+  @@index([isFeatured])
+  @@index([slug])
+}
+
+// ---------------------------------------------------------------------------
+// Dynamic page content (key/value, section based)
+// ---------------------------------------------------------------------------
+
+model PageSection {
+  id        String   @id @default(cuid())
+  page      String // e.g. "home", "about", "services", "contact"
+  key       String // e.g. "hero", "stats", "story", "cta"
+  title     String?
+  subtitle  String?
+  body      String?
+  meta      Json     @default("{}") // structured block data (rich text, images, ids)
+  image     String?
+  position  Int      @default(0)
+  isActive  Boolean  @default(true)
+  updatedAt DateTime @updatedAt
+
+  @@unique([page, key])
+  @@index([page, isActive])
+}
+
+// Animated hero/counter statistics (fully editable from admin).
+model Stat {
+  id       String @id @default(cuid())
+  label    String
+  value    Float
+  suffix   String @default("+")
+  position Int    @default(0)
+  isActive Boolean @default(true)
+
+  @@index([isActive])
+}
+
+// ---------------------------------------------------------------------------
+// Brand settings (single record, id = 1) & office locations
+// ---------------------------------------------------------------------------
+
+model SiteSetting {
+  id        Int      @id @default(1)
+  meta      Json     @default("{}") // company identity, contact & social links
+  updatedAt DateTime @updatedAt
+}
+
+model Office {
+  id        String   @id @default(cuid())
+  name      String
+  address   String
+  phone     String?
+  email     String?
+  whatsapp  String?
+  position  Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([isActive])
+}
+
+// ---------------------------------------------------------------------------
+// Services & Milestones (About / Services pages)
+// ---------------------------------------------------------------------------
+
+model Service {
+  id          String   @id @default(cuid())
+  title       String
+  slug        String   @unique
+  description String
+  icon        String? // lucide icon key
+  image       String?
+  isActive    Boolean  @default(true)
+  position    Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([isActive])
+}
+
+model Milestone {
+  id          String   @id @default(cuid())
+  year        Int
+  title       String
+  description String?
+  image       String?
+  position    Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  @@index([year])
+}
+
+// ---------------------------------------------------------------------------
+// Reusable content collections (About values, checklist items, supply chain)
+// ---------------------------------------------------------------------------
+
+// Core "what we stand behind" cards on the About page.
+model CompanyValue {
+  id          String   @id @default(cuid())
+  title       String
+  description String
+  icon        String   @default("HeartHandshake") // lucide icon key
+  position    Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([isActive])
+}
+
+// Steps in the "Global Supply Chain" band (Home & Services pages).
+model SupplyStep {
+  id          String   @id @default(cuid())
+  title       String
+  description String
+  icon        String   @default("Route") // lucide icon key
+  position    Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([isActive])
+}
+
+// Generic badge / checklist entries, grouped by page area.
+model ChecklistItem {
+  id        String   @id @default(cuid())
+  group     String   // "capabilities" (Services) | "certifications" (About)
+  title     String
+  position  Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([group, isActive])
+}
+
+// ---------------------------------------------------------------------------
+// News & Media
+// ---------------------------------------------------------------------------
+
+enum PostStatus {
+  DRAFT
+  PUBLISHED
+}
+
+model Blog {
+  id          String    @id @default(cuid())
+  title       String
+  slug        String    @unique
+  excerpt     String
+  body        String // rich text / HTML from the admin editor
+  coverImage  String?
+  tags        String[]  @default([])
+  authorId    String?
+  author      User?     @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  status      PostStatus @default(DRAFT)
+  publishedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  viewCount   Int       @default(0)
+
+  @@index([status, publishedAt])
+  @@index([slug])
+}
+
+// ---------------------------------------------------------------------------
+// Meetings & Outreach
+// ---------------------------------------------------------------------------
+
+enum InquiryStatus {
+  NEW
+  IN_PROGRESS
+  RESOLVED
+  ARCHIVED
+}
+
+model Inquiry {
+  id        String        @id @default(cuid())
+  name      String
+  email     String
+  phone     String?
+  subject   String
+  message   String
+  status    InquiryStatus @default(NEW)
+  assignedToId String?
+  assignedTo   User?       @relation(fields: [assignedToId], references: [id], onDelete: SetNull)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  @@index([status])
+  @@index([createdAt])
+}
+
+model Newsletter {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  subscribed Boolean @default(true)
+  createdAt DateTime @default(now())
+
+  @@index([subscribed])
+}
+
+// ---------------------------------------------------------------------------
+// Media Library (Cloudinary / S3 asset registry)
+// ---------------------------------------------------------------------------
+
+model MediaAsset {
+  id           String   @id @default(cuid())
+  url          String
+  publicId     String? // cloudinary public_id or S3 key
+  fileName     String?
+  mimeType     String?
+  size         Int?
+  width        Int?
+  height       Int?
+  alt          String?
+  createdAt    DateTime @default(now())
+
+  @@index([createdAt])
+}

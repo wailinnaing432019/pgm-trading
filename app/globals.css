@@ -1,26 +1,250 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/* ============================================================================
+   PGM Trading — Design System (Tailwind CSS v4)
+   Theme: Agricultural, Earthy, Professional, Modern Trade & Logistics
+   ========================================================================== */
+
+@theme {
+  /* Deep Forest Greens — primary brand */
+  --color-forest-50: #f3f7f3;
+  --color-forest-100: #e3ede3;
+  --color-forest-200: #c6dbc9;
+  --color-forest-300: #9cc1a3;
+  --color-forest-400: #6fa17b;
+  --color-forest-500: #4e845d;
+  --color-forest-600: #3b6949;
+  --color-forest-700: #30543d;
+  --color-forest-800: #284332;
+  --color-forest-900: #22372a;
+  --color-forest-950: #111f17;
+
+  /* Earthy Browns / Soil */
+  --color-soil-50: #faf6f1;
+  --color-soil-100: #f2e9dd;
+  --color-soil-200: #e3d0b9;
+  --color-soil-300: #d0b08e;
+  --color-soil-400: #bc8c64;
+  --color-soil-500: #a97349;
+  --color-soil-600: #8f5b3d;
+  --color-soil-700: #744734;
+  --color-soil-800: #5f3b2e;
+  --color-soil-900: #503227;
+  --color-soil-950: #2c1a13;
+
+  /* Warm Sands / Beiges */
+  --color-sand-50: #fbf9f4;
+  --color-sand-100: #f5f0e4;
+  --color-sand-200: #ebdfc9;
+  --color-sand-300: #ddc99f;
+  --color-sand-400: #cdae74;
+  --color-sand-500: #c19a57;
+  --color-sand-600: #b2854c;
+
+  /* Cream — clean white base */
+  --color-cream: #faf8f2;
+
+  /* Subtle Gold — premium accents */
+  --color-gold-100: #f9eec9;
+  --color-gold-200: #f2dd94;
+  --color-gold-300: #e9c65f;
+  --color-gold-400: #dfae3a;
+  --color-gold-500: #cd9527;
+  --color-gold-600: #a87320;
+  --color-gold-700: #86561e;
+
+  /* Semantic tokens */
+  --color-background: var(--color-cream);
+  --color-foreground: var(--color-forest-950);
+  --color-primary: var(--color-forest-700);
+  --color-primary-hover: var(--color-forest-800);
+  --color-primary-foreground: var(--color-cream);
+  --color-accent: var(--color-gold-500);
+  --color-accent-foreground: var(--color-forest-950);
+  --color-muted: var(--color-sand-100);
+  --color-muted-foreground: var(--color-forest-800);
+  --color-card: #ffffff;
+  --color-card-foreground: var(--color-forest-950);
+  --color-border: var(--color-sand-200);
+  --color-ring: var(--color-gold-400);
+
+  /* Typography */
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-geist-serif), ui-serif, Georgia, serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+
+  /* Motion */
+  --animate-fade-up: fade-up 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+  --animate-ken-burns: ken-burns 18s ease-in-out infinite alternate;
+  --animate-marquee: marquee 40s linear infinite;
+
+  --shadow-card: 0 1px 2px rgb(17 31 23 / 0.05), 0 8px 24px -12px rgb(17 31 23 / 0.18);
+  --shadow-lift: 0 12px 40px -12px rgb(17 31 23 / 0.28);
+
+  --radius-xl: 1.25rem;
+  --radius-2xl: 1.75rem;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@keyframes ken-burns {
+  from {
+    transform: scale(1) translate(0, 0);
+  }
+  to {
+    transform: scale(1.12) translate(-1.5%, -1%);
+  }
+}
+
+@keyframes marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-serif);
+    letter-spacing: -0.02em;
+    text-wrap: balance;
+  }
+
+  ::selection {
+    background-color: var(--color-gold-200);
+    color: var(--color-forest-950);
+  }
+}
+
+@layer utilities {
+  /* Page-wide max-width container */
+  .section-container {
+    @apply mx-auto w-full max-w-7xl px-5 sm:px-8;
+  }
+
+  /* Styles for CMS rich-text (blog body, page sections) */
+  .rich-text {
+    @apply text-base leading-relaxed text-forest-800/85;
+  }
+  .rich-text h2 {
+    @apply mt-8 mb-3 font-serif text-2xl font-semibold text-forest-950;
+  }
+  .rich-text h3 {
+    @apply mt-6 mb-2 font-serif text-xl font-semibold text-forest-950;
+  }
+  .rich-text p {
+    @apply my-4;
+  }
+  .rich-text ul {
+    @apply my-4 list-disc space-y-1.5 pl-6;
+  }
+  .rich-text ol {
+    @apply my-4 list-decimal space-y-1.5 pl-6;
+  }
+  .rich-text a {
+    @apply font-medium text-forest-700 underline underline-offset-4;
+  }
+  .rich-text blockquote {
+    @apply my-6 border-l-4 border-gold-400 pl-5 font-serif text-lg italic text-forest-900;
+  }
+  .rich-text img {
+    @apply my-6 rounded-2xl;
+  }
+
+  /* Glassmorphism surfaces */
+  .glass {
+    background: rgb(255 255 255 / 0.08);
+    backdrop-filter: blur(14px) saturate(140%);
+    -webkit-backdrop-filter: blur(14px) saturate(140%);
+    border: 1px solid rgb(255 255 255 / 0.18);
+  }
+
+  .glass-dark {
+    background: rgb(17 31 23 / 0.55);
+    backdrop-filter: blur(14px) saturate(140%);
+    -webkit-backdrop-filter: blur(14px) saturate(140%);
+    border: 1px solid rgb(255 255 255 / 0.12);
+  }
+
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .card-surface {
+    background: var(--color-card);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-card);
+  }
+
+  /* Subtle grain overlay for hero sections */
+  .grain::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.05;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .line-clamp-3 {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  /* Admin form inputs */
+  input.input-admin,
+  textarea.input-admin,
+  select.input-admin {
+    @apply w-full rounded-xl border border-sand-200 bg-cream px-4 py-3 text-sm text-forest-950 placeholder:text-forest-700/40 focus:border-forest-500 focus:outline-none focus:ring-2 focus:ring-forest-500/30;
+  }
+}
+
+/* Respect users who prefer reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

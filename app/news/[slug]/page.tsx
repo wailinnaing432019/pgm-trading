@@ -1,0 +1,80 @@
+import type { Metadata } from "next";
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { ArrowLeft, CalendarDays, User } from "lucide-react";
+import { AssetImage } from "@/components/ui/asset-image";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { getBlogBySlug } from "@/lib/queries";
+import { formatDate } from "@/lib/utils";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
+  const { slug } = await params;
+  const post = await getBlogBySlug(slug);
+  if (!post) return { title: "Article not found" };
+  return { title: post.title, description: post.excerpt };
+}
+
+export default async function NewsDetailPage({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}) {
+  const { slug } = await params;
+  const post = await getBlogBySlug(slug);
+  if (!post) notFound();
+
+  return (
+    <main>
+        <div className="border-b border-sand-200 bg-sand-50">
+          <div className="section-container py-4 text-sm text-forest-700/70">
+            <Link href="/" className="transition-colors hover:text-forest-900">Home</Link>
+            <span className="mx-2" aria-hidden>/</span>
+            <Link href="/news" className="transition-colors hover:text-forest-900">News</Link>
+            <span className="mx-2" aria-hidden>/</span>
+            <span className="font-medium text-forest-950">{post.title}</span>
+          </div>
+        </div>
+
+        <article className="bg-cream py-14">
+          <div className="section-container max-w-4xl">
+            <div className="flex flex-wrap items-center gap-3 text-sm">
+              <Badge tone="gold">{post.tags[0] ?? "Update"}</Badge>
+              <span className="flex items-center gap-1.5 text-forest-700/70">
+                <CalendarDays className="h-4 w-4" aria-hidden /> {formatDate(post.publishedAt)}
+              </span>
+              {post.author?.name ? (
+                <span className="flex items-center gap-1.5 text-forest-700/70">
+                  <User className="h-4 w-4" aria-hidden /> {post.author.name}
+                </span>
+              ) : null}
+            </div>
+
+            <h1 className="mt-5 font-serif text-3xl font-semibold leading-tight text-forest-950 sm:text-4xl md:text-5xl">
+              {post.title}
+            </h1>
+            <p className="mt-5 text-lg leading-relaxed text-forest-800/75">{post.excerpt}</p>
+
+            <div className="relative mt-10 aspect-[16/7] overflow-hidden rounded-3xl">
+              <AssetImage src={post.coverImage} alt={post.title} placeholderIcon="leaf" priority />
+            </div>
+
+            <div
+              className="rich-text mt-10"
+              dangerouslySetInnerHTML={{ __html: post.body }}
+            />
+          </div>
+
+          <div className="section-container mt-14 max-w-4xl">
+            <Button href="/news" variant="ghost">
+              <ArrowLeft className="h-4 w-4" aria-hidden /> Back to all news
+            </Button>
+          </div>
+        </article>
+      </main>
+  );
+}
