@@ -5,9 +5,15 @@ import { deleteProduct } from "@/lib/actions/admin";
 import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils";
 import { DangerSubmitButton } from "@/components/ui/danger-submit-button";
+import { SearchBox } from "@/components/admin/search-box";
 
-export default async function AdminProductsPage() {
-  const products = await getAdminProducts();
+export default async function AdminProductsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string }>;
+}) {
+  const { q } = await searchParams;
+  const products = await getAdminProducts(q ?? "");
 
   return (
     <div>
@@ -24,9 +30,17 @@ export default async function AdminProductsPage() {
         </Link>
       </div>
 
-      <div className="card-surface mt-8 overflow-x-auto">
-        {products.length > 0 ? (
-          <table className="w-full min-w-[720px] text-left text-sm">
+      <div className="mt-8">
+        <div className="mb-4 flex items-center justify-between gap-4">
+          <SearchBox basePath="/admin/products" placeholder="Search by title or summary…" />
+          <p className="text-sm text-forest-700/60">
+            {products.length} product{products.length === 1 ? "" : "s"}
+            {q ? ` matching “${q}”` : ""}
+          </p>
+        </div>
+        <div className="card-surface overflow-x-auto">
+          {products.length > 0 ? (
+            <table className="w-full min-w-[720px] text-left text-sm">
             <thead>
               <tr className="border-b border-sand-200 text-xs uppercase tracking-wider text-forest-700/60">
                 <th className="px-6 py-3.5 font-semibold">Product</th>
@@ -41,13 +55,14 @@ export default async function AdminProductsPage() {
               {products.map((p) => (
                 <tr key={p.id} className="transition-colors hover:bg-sand-50">
                   <td className="px-6 py-4">
-                    <Link href={`/products/${p.slug}`} className="font-semibold text-forest-950 hover:text-forest-700">
+                    <Link href={`/products/${p.id}`} className="font-semibold text-forest-950 hover:text-forest-700">
                       {p.title}
                     </Link>
-                    <p className="text-xs text-forest-700/60">/{p.slug}</p>
                   </td>
                   <td className="px-4 py-4 text-forest-800/80">{p.category?.name}</td>
-                  <td className="px-4 py-4 text-forest-800/80">{p.tradeType}</td>
+                  <td className="px-4 py-4 text-forest-800/80">
+                    {p.tradeTypes.map((t) => t.tradeType.label).join(", ") || "—"}
+                  </td>
                   <td className="px-4 py-4">
                     <Badge tone={p.status === "PUBLISHED" ? "forest" : p.status === "ARCHIVED" ? "soil" : "neutral"}>
                       {p.status.toLowerCase()}
@@ -88,6 +103,7 @@ export default async function AdminProductsPage() {
             </Link>
           </div>
         )}
+        </div>
       </div>
     </div>
   );

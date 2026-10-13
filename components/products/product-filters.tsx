@@ -3,16 +3,21 @@
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { Search } from "lucide-react";
-import { tradeTypes } from "@/lib/site";
 import { cn } from "@/lib/utils";
 
 type ProductFiltersProps = {
   initialSearch: string;
   initialTrade: string;
   initialCategory: string;
+  tradeTypes: { id: string; label: string }[];
 };
 
-export function ProductFilters({ initialSearch, initialTrade, initialCategory }: ProductFiltersProps) {
+export function ProductFilters({
+  initialSearch,
+  initialTrade,
+  initialCategory,
+  tradeTypes,
+}: ProductFiltersProps) {
   const router = useRouter();
   const pathname = usePathname();
   const [search, setSearch] = useState(initialSearch);
@@ -57,12 +62,12 @@ export function ProductFilters({ initialSearch, initialTrade, initialCategory }:
           All
         </button>
         {tradeTypes.map((type) => {
-          const active = initialTrade === type.value;
+          const active = initialTrade === type.id;
           return (
             <button
-              key={type.value}
+              key={type.id}
               type="button"
-              onClick={() => apply({ trade: type.value })}
+              onClick={() => apply({ trade: type.id })}
               className={cn(
                 "h-10 rounded-full px-4 text-sm font-medium transition-colors",
                 active ? "bg-forest-700 text-cream" : "text-forest-800 hover:bg-forest-100"

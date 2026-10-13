@@ -1,18 +1,33 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect } from "react";
 import { Loader2, Save } from "lucide-react";
 import type { Blog } from "@prisma/client";
 import { saveBlog, type AdminActionState } from "@/lib/actions/admin";
 import { ImageUploader } from "@/components/ui/image-uploader";
+import { AutoTranslateFormButton } from "@/components/admin/auto-translate-button";
+import { useToast } from "@/components/admin/toast";
 
 const initialState: AdminActionState = { ok: false };
 
 export function BlogForm({ post }: { post?: Blog }) {
   const [state, action, pending] = useActionState<AdminActionState, FormData>(saveBlog, initialState);
+  const { pushToast } = useToast();
+
+  useEffect(() => {
+    if (state.ok) {
+      pushToast("success", post ? "Article updated." : "Article published.");
+    } else if (state.error) {
+      pushToast("error", state.error);
+    }
+  }, [state, post, pushToast]);
 
   return (
     <form action={action} className="grid gap-5">
+      <div className="flex items-center justify-between border-b border-sand-200/80 pb-3">
+        <span className="text-xs font-semibold text-forest-700/70">Article Content</span>
+        <AutoTranslateFormButton />
+      </div>
       <input type="hidden" name="id" value={post?.id} />
 
       <div className="grid gap-5 sm:grid-cols-2">
@@ -21,14 +36,9 @@ export function BlogForm({ post }: { post?: Blog }) {
           <input name="title" required defaultValue={post?.title} className="input-admin" />
         </div>
         <div>
-          <label className="mb-1.5 block text-sm font-medium text-forest-900">Slug *</label>
-          <input name="slug" required defaultValue={post?.slug} placeholder="q3-rice-export-outlook" className="input-admin" />
+          <label className="mb-1.5 block text-sm font-medium text-forest-900">Excerpt *</label>
+          <input name="excerpt" required defaultValue={post?.excerpt} className="input-admin" />
         </div>
-      </div>
-
-      <div>
-        <label className="mb-1.5 block text-sm font-medium text-forest-900">Excerpt *</label>
-        <input name="excerpt" required defaultValue={post?.excerpt} className="input-admin" />
       </div>
 
       <div>
@@ -79,11 +89,6 @@ export function BlogForm({ post }: { post?: Blog }) {
           {pending ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Save className="h-4 w-4" aria-hidden />}
           {post ? "Update article" : "Publish article"}
         </button>
-        {state.ok ? (
-          <p className="text-sm font-medium text-forest-700" role="status">Saved — news feed refreshed.</p>
-        ) : !state.ok && state.error ? (
-          <p className="text-sm text-soil-700" role="alert">{state.error}</p>
-        ) : null}
       </div>
     </form>
   );

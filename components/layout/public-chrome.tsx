@@ -5,6 +5,9 @@ import type { Office, PageSection } from "@prisma/client";
 import type { SiteSettings } from "@/lib/site";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
+import { LanguageProvider } from "@/lib/i18n";
+import { TradeDeskFloating } from "@/components/ui/trade-desk-floating";
+import { GoogleTranslate } from "@/components/layout/google-translate";
 
 type Props = {
   settings: SiteSettings;
@@ -20,10 +23,12 @@ export function PublicChrome({ settings, offices, newsletter, children }: Props)
   if (isAdmin) return <>{children}</>;
 
   return (
-    <>
+    <LanguageProvider>
       <Header settings={settings} />
       {children}
       <Footer settings={settings} offices={offices} newsletter={newsletter} />
-    </>
+      <TradeDeskFloating settings={settings} />
+      <GoogleTranslate />
+    </LanguageProvider>
   );
 }

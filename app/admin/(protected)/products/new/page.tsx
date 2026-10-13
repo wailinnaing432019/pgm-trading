@@ -1,10 +1,10 @@
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { ProductForm } from "@/components/admin/product-form";
-import { getCategories } from "@/lib/queries";
+import { getCategories, getAdminTradeTypes } from "@/lib/queries";
 
 export default async function NewProductPage() {
-  const categories = await getCategories();
+  const [categories, tradeTypes] = await Promise.all([getCategories(), getAdminTradeTypes()]);
 
   return (
     <div className="mx-auto max-w-4xl">
@@ -15,7 +15,10 @@ export default async function NewProductPage() {
       <p className="mt-1 text-sm text-forest-700/70">Fill in the details — the catalog updates instantly.</p>
 
       <div className="card-surface mt-6 p-7">
-        <ProductForm categories={categories} />
+        <ProductForm
+          categories={categories}
+          tradeTypes={tradeTypes.map((t) => ({ id: t.id, label: t.label }))}
+        />
       </div>
     </div>
   );

@@ -34,7 +34,7 @@ export default async function NewsPage() {
                 {items.map((post) => (
                   <Link
                     key={post.id}
-                    href={`/news/${post.slug}`}
+                    href={`/news/${post.id}`}
                     className="card-surface group flex flex-col overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-lift"
                   >
                     <div className="relative h-52 overflow-hidden">

@@ -156,7 +156,10 @@ export const getFeaturedProducts = cache(async (limit = 8) => {
     async () => {
       const products = await prisma.product.findMany({
         where: { status: "PUBLISHED", isFeatured: true },
-        include: { category: true },
+        include: {
+          category: true,
+          tradeTypes: { include: { tradeType: true } },
+        },
         orderBy: { updatedAt: "desc" },
         take: limit,
       });
@@ -187,7 +190,7 @@ export const getLatestNews = cache(async (limit = 3) => {
 
 export type ProductListParams = {
   category?: string;
-  tradeType?: "EXPORT" | "IMPORT" | "BOTH";
+  tradeType?: string;
   q?: string;
   featuredOnly?: boolean;
   limit?: number;
@@ -206,12 +209,45 @@ export const getCategories = cache(async () => {
   );
 });
 
+export const getAdminCategories = cache(async () => {
+  return safe(
+    () =>
+      prisma.category.findMany({
+        orderBy: [{ position: "asc" }, { name: "asc" }],
+        include: { _count: { select: { products: true } } },
+      }),
+    []
+  );
+});
+
+export const getTradeTypes = cache(async () => {
+  return safe(
+    () =>
+      prisma.tradeType.findMany({
+        where: { isActive: true },
+        orderBy: { position: "asc" },
+      }),
+    []
+  );
+});
+
+export const getAdminTradeTypes = cache(async () => {
+  return safe(
+    () =>
+      prisma.tradeType.findMany({
+        orderBy: { position: "asc" },
+        include: { _count: { select: { products: true } } },
+      }),
+    []
+  );
+});
+
 export const getProducts = cache(async (params: ProductListParams = {}) => {
   const { category, tradeType, q, featuredOnly, limit = 12, offset = 0 } = params;
 
   const where: Prisma.ProductWhereInput = { status: "PUBLISHED" };
   if (category) where.category = { slug: category };
-  if (tradeType) where.tradeType = tradeType;
+  if (tradeType) where.tradeTypes = { some: { tradeTypeId: tradeType } };
   if (featuredOnly) where.isFeatured = true;
   if (q) {
     where.OR = [
@@ -226,7 +262,10 @@ export const getProducts = cache(async (params: ProductListParams = {}) => {
       const [items, total] = await prisma.$transaction([
         prisma.product.findMany({
           where,
-          include: { category: true },
+          include: {
+            category: true,
+            tradeTypes: { include: { tradeType: true } },
+          },
           orderBy: [{ isFeatured: "desc" }, { updatedAt: "desc" }],
           take: limit,
           skip: offset,
@@ -243,12 +282,15 @@ export const getProducts = cache(async (params: ProductListParams = {}) => {
   );
 });
 
-export const getProductBySlug = cache(async (slug: string) => {
+export const getProductById = cache(async (id: string) => {
   return safe(
     async () => {
       const product = await prisma.product.findFirst({
-        where: { slug, status: "PUBLISHED" },
-        include: { category: true },
+        where: { id, status: "PUBLISHED" },
+        include: {
+          category: true,
+          tradeTypes: { include: { tradeType: true } },
+        },
       });
       return product ? { ...product, price: product.price ? Number(product.price) : null } : null;
     },
@@ -290,11 +332,11 @@ export const getBlogs = cache(async (limit = 50, offset = 0) => {
   );
 });
 
-export const getBlogBySlug = cache(async (slug: string) => {
+export const getBlogById = cache(async (id: string) => {
   return safe(
     async () => {
       const blog = await prisma.blog.findFirst({
-        where: { slug, status: "PUBLISHED", publishedAt: { lte: new Date() } },
+        where: { id, status: "PUBLISHED", publishedAt: { lte: new Date() } },
         include: { author: { select: { name: true } } },
       });
       if (blog) {
@@ -423,11 +465,14 @@ export const getAdminProducts = cache(async (query = "") => {
           ? {
               OR: [
                 { title: { contains: query, mode: "insensitive" } },
-                { slug: { contains: query, mode: "insensitive" } },
+                { summary: { contains: query, mode: "insensitive" } },
               ],
             }
           : undefined,
-        include: { category: { select: { name: true, slug: true } } },
+        include: {
+          category: { select: { name: true, slug: true } },
+          tradeTypes: { include: { tradeType: true } },
+        },
         orderBy: { updatedAt: "desc" },
         take: 100,
       });

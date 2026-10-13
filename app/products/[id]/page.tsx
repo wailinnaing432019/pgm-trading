@@ -15,16 +15,17 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { AssetImage } from "@/components/ui/asset-image";
 import { ProductCard } from "@/components/products/product-card";
-import { getProductBySlug, getProducts, getSiteSettings } from "@/lib/queries";
+import { WhatsAppIcon, ViberIcon } from "@/components/ui/trade-icons";
+import { getProductById, getProducts, getSiteSettings } from "@/lib/queries";
 import { formatSpecs } from "@/lib/utils";
 
 export async function generateMetadata({
   params,
 }: {
-  params: Promise<{ slug: string }>;
+  params: Promise<{ id: string }>;
 }): Promise<Metadata> {
-  const { slug } = await params;
-  const product = await getProductBySlug(slug);
+  const { id } = await params;
+  const product = await getProductById(id);
   if (!product) return { title: "Product not found" };
 
   return {
@@ -37,16 +38,22 @@ export async function generateMetadata({
 export default async function ProductDetailPage({
   params,
 }: {
-  params: Promise<{ slug: string }>;
+  params: Promise<{ id: string }>;
 }) {
-  const { slug } = await params;
-  const [product, settings] = await Promise.all([getProductBySlug(slug), getSiteSettings()]);
+  const { id } = await params;
+  const [product, settings] = await Promise.all([getProductById(id), getSiteSettings()]);
   if (!product) notFound();
 
   const related = await getProducts({ category: product.category?.slug, limit: 4 });
   const specs = formatSpecs(product.specs as Record<string, unknown>);
-  const tradeTone = product.tradeType === "EXPORT" ? "forest" : product.tradeType === "IMPORT" ? "gold" : "soil";
-  const enquiryLink = `/contact?subject=${encodeURIComponent(`${product.title} enquiry`)}`;
+  const tradeLabels = product.tradeTypes.map((t) => t.tradeType.label);
+  const cleanWhatsapp = (settings.whatsapp || "").replace(/[^0-9]/g, "");
+  const cleanViber = (settings.viber || settings.phone || "").replace(/[^0-9]/g, "");
+  const whatsappUrl = cleanWhatsapp
+    ? `https://wa.me/${cleanWhatsapp}?text=${encodeURIComponent(`Hello PGM Trade Desk, I would like to request an official quote for ${product.title} (Origin: ${product.origin ?? "Myanmar"}, Unit: ${product.unit ?? "MT"}).`)}`
+    : `https://wa.me/959123456789`;
+  const viberUrl = cleanViber ? `viber://chat?number=%2B${cleanViber}` : `viber://chat?number=%2B959123456789`;
+  const rfqLink = `/contact?tab=rfq&subject=${encodeURIComponent(`${product.title} RFQ`)}`;
 
   return (
     <main className="bg-cream">
@@ -69,10 +76,10 @@ export default async function ProductDetailPage({
           {/* Gallery */}
           <div className="relative aspect-[4/3] overflow-hidden rounded-3xl">
             <AssetImage src={product.images[0]} alt={product.title} placeholderIcon="leaf" priority />
-            <div className="absolute left-4 top-4 flex gap-2">
-              <Badge tone={tradeTone}>
-                {product.tradeType === "BOTH" ? "Import & Export" : `${product.tradeType.toLowerCase()}`}
-              </Badge>
+            <div className="absolute left-4 top-4 flex max-w-[calc(100%-2rem)] flex-wrap gap-2">
+              {tradeLabels.map((label) => (
+                <Badge key={label} tone="forest">{label}</Badge>
+              ))}
               {product.isFeatured ? <Badge tone="gold">Featured</Badge> : null}
             </div>
             {product.availability === 0 ? (
@@ -109,20 +116,42 @@ export default async function ProductDetailPage({
               ) : null}
               <div className="rounded-2xl bg-forest-50 p-4">
                 <p className="text-xs font-semibold uppercase tracking-wider text-forest-700/60">Trading</p>
-                <p className="mt-1 flex items-center gap-1.5 font-medium text-forest-950">
-                  <Boxes className="h-4 w-4 text-forest-700" aria-hidden />
-                  {product.tradeType === "BOTH" ? "Import & Export" : `${product.tradeType} only`}
+                <p className="mt-1 flex items-center gap-1.5 text-sm font-medium text-forest-950">
+                  <Boxes className="h-4 w-4 shrink-0 text-forest-700" aria-hidden />
+                  {tradeLabels.length > 0 ? tradeLabels.join(", ") : "—"}
                 </p>
               </div>
             </div>
 
-            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-              <Button href={enquiryLink} size="lg" variant="gold">
-                <Send className="h-4 w-4" aria-hidden /> Enquire About This Product
-              </Button>
-              <Button href="/contact?subject=General%20trade%20enquiry" size="lg" variant="outline">
-                Talk to Export Desk
-              </Button>
+            <div className="mt-8 flex flex-col gap-3">
+              <div className="flex flex-col gap-3 sm:flex-row">
+                <Button href={rfqLink} size="lg" variant="gold" className="flex-1">
+                  <Send className="h-4 w-4" aria-hidden /> Request Official RFQ (FOB / CIF)
+                </Button>
+                <Button href="/contact?subject=General%20trade%20enquiry" size="lg" variant="outline">
+                  Talk to Export Desk
+                </Button>
+              </div>
+
+              {/* Instant Messenger Shortcuts for International & Myanmar Traders */}
+              <div className="flex flex-wrap items-center gap-2 pt-1">
+                <a
+                  href={whatsappUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-xs font-semibold text-white shadow-sm transition-all hover:bg-emerald-700 hover:shadow"
+                >
+                  <WhatsAppIcon className="h-4 w-4" />
+                  <span>Trade via WhatsApp</span>
+                </a>
+                <a
+                  href={viberUrl}
+                  className="inline-flex items-center gap-2 rounded-xl bg-purple-600 px-4 py-2.5 text-xs font-semibold text-white shadow-sm transition-all hover:bg-purple-700 hover:shadow"
+                >
+                  <ViberIcon className="h-4 w-4" />
+                  <span>Trade via Viber</span>
+                </a>
+              </div>
             </div>
 
             <a href={`tel:${settings.phone}`} className="mt-4 text-sm text-forest-700/70">

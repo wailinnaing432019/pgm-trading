@@ -2,8 +2,9 @@ import type { Metadata } from "next";
 import { Award, Eye, Goal } from "lucide-react";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { AssetImage } from "@/components/ui/asset-image";
-import { getPageContent, getMilestones, getValues, getChecklist } from "@/lib/queries";
+import { getPageContent, getMilestones, getValues, getChecklist, getSiteSettings } from "@/lib/queries";
 import { getLucideIcon } from "@/lib/icons";
+import { TradeCredentials } from "@/components/layout/trade-credentials";
 
 export const metadata: Metadata = {
   title: "About Us — Our Story, Vision & Values",
@@ -12,11 +13,12 @@ export const metadata: Metadata = {
 };
 
 export default async function AboutPage() {
-  const [content, milestones, values, certifications] = await Promise.all([
+  const [content, milestones, values, certifications, settings] = await Promise.all([
     getPageContent("about"),
     getMilestones(),
     getValues(),
     getChecklist("certifications"),
+    getSiteSettings(),
   ]);
 
   const hero = content.hero;
@@ -149,6 +151,9 @@ export default async function AboutPage() {
           </div>
         </section>
       ) : null}
+
+      {/* Myanmar Official Trade Credentials & Compliance */}
+      <TradeCredentials settings={settings} />
     </main>
   );
 }

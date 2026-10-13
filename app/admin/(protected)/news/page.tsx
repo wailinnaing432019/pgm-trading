@@ -43,10 +43,9 @@ export default async function AdminNewsPage() {
               {posts.map((post) => (
                 <tr key={post.id} className="transition-colors hover:bg-sand-50">
                   <td className="px-6 py-4">
-                    <Link href={`/news/${post.slug}`} className="font-semibold text-forest-950 hover:text-forest-700">
+                    <Link href={`/news/${post.id}`} className="font-semibold text-forest-950 hover:text-forest-700">
                       {post.title}
                     </Link>
-                    <p className="text-xs text-forest-700/60">/{post.slug}</p>
                   </td>
                   <td className="px-4 py-4">
                     <Badge tone={post.status === "PUBLISHED" ? "forest" : "neutral"}>{post.status.toLowerCase()}</Badge>

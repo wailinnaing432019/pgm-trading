@@ -1,8 +1,10 @@
 import Link from "next/link";
-import { Mail, MapPin, Phone, Wheat } from "lucide-react";
+import { Mail, MapPin, Phone, ShieldCheck } from "lucide-react";
 import type { Office, PageSection } from "@prisma/client";
 import { navLinks, type SiteSettings } from "@/lib/site";
 import { NewsletterForm } from "@/components/layout/newsletter-form";
+import { SiteLogo } from "@/components/layout/site-logo";
+import { WhatsAppIcon, ViberIcon, TelegramIcon } from "@/components/ui/trade-icons";
 
 function FacebookIcon({ className }: { className?: string }) {
   return (
@@ -29,6 +31,9 @@ export function Footer({
   offices: Office[];
   newsletter: PageSection | null;
 }) {
+  const cleanWhatsapp = (settings.whatsapp || "").replace(/[^0-9]/g, "");
+  const cleanViber = (settings.viber || settings.phone || "").replace(/[^0-9]/g, "");
+
   return (
     <footer className="mt-auto bg-forest-950 text-cream/80">
       {/* Newsletter band */}
@@ -50,26 +55,40 @@ export function Footer({
       <div className="section-container grid gap-10 py-14 md:grid-cols-4 sm:grid-cols-2">
         <div className="md:col-span-1">
           <Link href="/" className="flex items-center gap-2.5" aria-label="Home">
-            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-forest-800 text-gold-300">
-              <Wheat className="h-5 w-5" aria-hidden />
-            </span>
+            <SiteLogo settings={settings} />
             <span className="leading-tight">
               <span className="block font-serif text-lg font-semibold text-cream">{settings.shortName}</span>
               <span className="block text-[11px] uppercase tracking-[0.14em] text-cream/50">
-                Trade & Distribution
+                {settings.brandTag}
               </span>
             </span>
           </Link>
           <p className="mt-4 max-w-xs text-sm leading-relaxed text-cream/60">
             {settings.description}
           </p>
-          <div className="mt-5 flex gap-3">
+
+          <div className="mt-5 flex items-center gap-2.5">
             <a href={settings.facebook} target="_blank" rel="noopener noreferrer" className="flex h-9 w-9 items-center justify-center rounded-full bg-forest-800 text-cream/80 transition-colors hover:bg-gold-500 hover:text-forest-950" aria-label="Facebook">
               <FacebookIcon className="h-4 w-4" />
             </a>
             <a href={settings.linkedin} target="_blank" rel="noopener noreferrer" className="flex h-9 w-9 items-center justify-center rounded-full bg-forest-800 text-cream/80 transition-colors hover:bg-gold-500 hover:text-forest-950" aria-label="LinkedIn">
               <LinkedInIcon className="h-4 w-4" />
             </a>
+            {settings.telegram && (
+              <a href={`https://t.me/${settings.telegram.replace("@", "")}`} target="_blank" rel="noopener noreferrer" className="flex h-9 w-9 items-center justify-center rounded-full bg-forest-800 text-cream/80 transition-colors hover:bg-sky-500 hover:text-white" aria-label="Telegram">
+                <TelegramIcon className="h-4 w-4" />
+              </a>
+            )}
+            {cleanWhatsapp && (
+              <a href={`https://wa.me/${cleanWhatsapp}`} target="_blank" rel="noopener noreferrer" className="flex h-9 w-9 items-center justify-center rounded-full bg-forest-800 text-cream/80 transition-colors hover:bg-emerald-500 hover:text-white" aria-label="WhatsApp">
+                <WhatsAppIcon className="h-4 w-4" />
+              </a>
+            )}
+            {cleanViber && (
+              <a href={`viber://chat?number=%2B${cleanViber}`} className="flex h-9 w-9 items-center justify-center rounded-full bg-forest-800 text-cream/80 transition-colors hover:bg-purple-600 hover:text-white" aria-label="Viber">
+                <ViberIcon className="h-4 w-4" />
+              </a>
+            )}
           </div>
         </div>
 
@@ -84,6 +103,11 @@ export function Footer({
               </li>
             ))}
             <li>
+              <Link href="/contact?tab=rfq" className="font-semibold text-gold-400 transition-colors hover:text-gold-300">
+                Request Official RFQ →
+              </Link>
+            </li>
+            <li>
               <Link href="/admin" className="transition-colors hover:text-gold-300">
                 Admin Dashboard
               </Link>
@@ -92,7 +116,7 @@ export function Footer({
         </div>
 
         <div>
-          <h4 className="text-sm font-semibold uppercase tracking-wider text-gold-400">Offices & Branches</h4>
+          <h4 className="text-sm font-semibold uppercase tracking-wider text-gold-400">Offices & Warehouses</h4>
           <ul className="mt-4 space-y-3 text-sm">
             {offices.map((office) => (
               <li key={office.id} className="flex gap-2 leading-relaxed">
@@ -107,7 +131,7 @@ export function Footer({
         </div>
 
         <div>
-          <h4 className="text-sm font-semibold uppercase tracking-wider text-gold-400">Contact</h4>
+          <h4 className="text-sm font-semibold uppercase tracking-wider text-gold-400">Trade Desk</h4>
           <ul className="mt-4 space-y-3 text-sm">
             <li>
               <a href={`mailto:${settings.email}`} className="flex items-center gap-2 transition-colors hover:text-gold-300">
@@ -121,14 +145,46 @@ export function Footer({
                 {settings.phone}
               </a>
             </li>
+            {cleanWhatsapp && (
+              <li>
+                <a href={`https://wa.me/${cleanWhatsapp}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 transition-colors hover:text-emerald-400">
+                  <WhatsAppIcon className="h-4 w-4 text-emerald-400" />
+                  <span>WhatsApp: {settings.whatsapp}</span>
+                </a>
+              </li>
+            )}
+            {cleanViber && (
+              <li>
+                <a href={`viber://chat?number=%2B${cleanViber}`} className="flex items-center gap-2 transition-colors hover:text-purple-300">
+                  <ViberIcon className="h-4 w-4 text-purple-400" />
+                  <span>Viber: {settings.viber}</span>
+                </a>
+              </li>
+            )}
           </ul>
+        </div>
+      </div>
+
+      {/* Official Credentials & Compliance Strip */}
+      <div className="border-t border-cream/10 bg-forest-950/80 py-4 text-xs text-cream/65">
+        <div className="section-container flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-1.5">
+            <span className="flex items-center gap-1.5 font-semibold text-gold-400">
+              <ShieldCheck className="h-3.5 w-3.5" />
+              <span>DICA Reg: {settings.regNumber || "109847291 (MyCO)"}</span>
+            </span>
+            <span>MOC License: {settings.exportLicense || "MOC-PTK-2024/0912 (PaThaKa)"}</span>
+            <span className="hidden sm:inline">MPBSA & MRF Trade Member</span>
+            <span className="hidden md:inline">SGS / BV Quality Inspection Compliant</span>
+          </div>
+          <span className="text-gold-400/90 font-medium">Yangon Port & Thilawa MITT Gateways</span>
         </div>
       </div>
 
       <div className="border-t border-cream/10">
         <div className="section-container flex flex-col items-center justify-between gap-2 py-6 text-xs text-cream/50 sm:flex-row">
           <p>© {new Date().getFullYear()} {settings.legalName}. All rights reserved.</p>
-          <p>Agricultural Import · Export · Trading · Distribution</p>
+          <p>Myanmar Agricultural Import · Export · Trading · Cold-Chain Distribution</p>
         </div>
       </div>
     </footer>

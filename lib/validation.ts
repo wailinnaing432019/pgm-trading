@@ -23,11 +23,10 @@ export const newsletterSchema = z.object({
 export const productSchema = z.object({
   id: z.string().optional(),
   title: z.string().trim().min(2).max(200),
-  slug: z.string().trim().min(2).max(220),
   summary: z.string().trim().min(2).max(400),
   description: z.string().trim().min(2).max(20000),
   categoryId: z.string().min(1, "Choose a category"),
-  tradeType: z.enum(["EXPORT", "IMPORT", "BOTH"]),
+  tradeTypeIds: z.array(z.string()).default([]),
   origin: z.string().trim().max(120).optional().or(z.literal("")),
   unit: z.string().trim().max(40).optional().or(z.literal("")),
   price: z.coerce.number().nonnegative().optional().nullable(),
@@ -46,6 +45,14 @@ export const categorySchema = z.object({
   slug: z.string().trim().min(2).max(140),
   description: z.string().trim().max(500).optional().or(z.literal("")),
   image: z.string().trim().max(500).optional().or(z.literal("")),
+  position: z.coerce.number().int().default(0),
+  isActive: z.boolean().default(true),
+});
+
+export const tradeTypeSchema = z.object({
+  id: z.string().optional(),
+  label: z.string().trim().min(2, "Label must be at least 2 characters").max(60),
+  description: z.string().trim().max(300).optional().or(z.literal("")),
   position: z.coerce.number().int().default(0),
   isActive: z.boolean().default(true),
 });
@@ -79,7 +86,6 @@ export const statSchema = z.object({
 export const blogSchema = z.object({
   id: z.string().optional(),
   title: z.string().trim().min(2).max(200),
-  slug: z.string().trim().min(2).max(220),
   excerpt: z.string().trim().min(2).max(400),
   body: z.string().trim().min(2),
   coverImage: z.string().trim().max(500).optional().or(z.literal("")),
@@ -91,7 +97,6 @@ export const blogSchema = z.object({
 export const serviceSchema = z.object({
   id: z.string().optional(),
   title: z.string().trim().min(2).max(200),
-  slug: z.string().trim().min(2).max(220),
   description: z.string().trim().min(2),
   icon: z.string().trim().max(60).optional().or(z.literal("")),
   image: z.string().trim().max(500).optional().or(z.literal("")),
@@ -145,14 +150,20 @@ export const settingsSchema = z.object({
   companyName: z.string().trim().min(1).max(200),
   legalName: z.string().trim().min(1).max(200),
   shortName: z.string().trim().min(1).max(80),
+  brandTag: z.string().trim().max(100),
   tagline: z.string().trim().max(300),
+  logo: z.string().trim().max(500).optional().or(z.literal("")),
   description: z.string().trim().max(2000),
   url: z.string().trim().url("Enter a valid site URL"),
   email: z.string().trim().toLowerCase().email("Enter a valid email"),
   phone: z.string().trim().max(40),
   whatsapp: z.string().trim().max(40),
+  viber: z.string().trim().max(40).optional().or(z.literal("")),
+  telegram: z.string().trim().max(100).optional().or(z.literal("")),
   facebook: z.string().trim().max(500),
   linkedin: z.string().trim().max(500),
+  regNumber: z.string().trim().max(120).optional().or(z.literal("")),
+  exportLicense: z.string().trim().max(120).optional().or(z.literal("")),
 });
 
 // ---------------------------------------------------------------------------

@@ -3,6 +3,7 @@ import { Mail, MapPin, Phone } from "lucide-react";
 import { InquiryForm } from "@/components/contact/inquiry-form";
 import { AssetImage } from "@/components/ui/asset-image";
 import { getPageContent, getOffices, getSiteSettings } from "@/lib/queries";
+import { TradeCredentials } from "@/components/layout/trade-credentials";
 
 export const metadata: Metadata = {
   title: "Contact & Trade Enquiries",
@@ -13,14 +14,14 @@ export const metadata: Metadata = {
 export default async function ContactPage({
   searchParams,
 }: {
-  searchParams: Promise<{ subject?: string }>;
+  searchParams: Promise<{ subject?: string; tab?: string }>;
 }) {
   const [content, offices, settings] = await Promise.all([
     getPageContent("contact"),
     getOffices(),
     getSiteSettings(),
   ]);
-  const { subject } = await searchParams;
+  const { subject, tab } = await searchParams;
   const hero = content.hero;
 
   return (
@@ -108,10 +109,19 @@ export default async function ContactPage({
 
           {/* Form */}
           <div>
-            <InquiryForm initialSubject={subject} />
+            <InquiryForm
+              initialSubject={subject}
+              initialTab={tab === "general" ? "general" : "rfq"}
+              phone={settings.phone}
+              whatsapp={settings.whatsapp}
+              viber={settings.viber}
+            />
           </div>
         </div>
       </section>
+
+      {/* Official Credentials & Compliance */}
+      <TradeCredentials settings={settings} section={content.trust} />
     </main>
   );
 }

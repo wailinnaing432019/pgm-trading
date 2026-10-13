@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { prisma } from "@/lib/prisma";
-import { getCategories } from "@/lib/queries";
+import { getCategories, getAdminTradeTypes } from "@/lib/queries";
 import { ProductForm } from "@/components/admin/product-form";
 
 export default async function EditProductPage({
@@ -11,9 +11,13 @@ export default async function EditProductPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const [categories, product] = await Promise.all([
+  const [categories, tradeTypes, product] = await Promise.all([
     getCategories(),
-    prisma.product.findUnique({ where: { id } }),
+    getAdminTradeTypes(),
+    prisma.product.findUnique({
+      where: { id },
+      include: { tradeTypes: { select: { tradeTypeId: true } } },
+    }),
   ]);
 
   if (!product) notFound();
@@ -27,7 +31,11 @@ export default async function EditProductPage({
       <p className="mt-1 text-sm text-forest-700/70">{product.title}</p>
 
       <div className="card-surface mt-6 p-7">
-        <ProductForm categories={categories} product={{ ...product, price: product.price ? Number(product.price) : null }} />
+        <ProductForm
+          categories={categories}
+          tradeTypes={tradeTypes.map((t) => ({ id: t.id, label: t.label }))}
+          product={{ ...product, price: product.price ? Number(product.price) : null }}
+        />
       </div>
     </div>
   );

@@ -1,20 +1,21 @@
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
-import type { Category, Product } from "@prisma/client";
+import type { Category, Product, TradeType } from "@prisma/client";
 import { Badge } from "@/components/ui/badge";
 import { AssetImage } from "@/components/ui/asset-image";
 
 export type ProductWithCategory = Omit<Product, "price"> & {
   category: Category | null;
+  tradeTypes: { tradeType: TradeType }[];
   price: number | null;
 };
 
 export function ProductCard({ product }: { product: ProductWithCategory }) {
-  const tradeTone = product.tradeType === "EXPORT" ? "forest" : product.tradeType === "IMPORT" ? "gold" : "soil";
+  const tradeLabels = product.tradeTypes.map((t) => t.tradeType.label);
 
   return (
     <Link
-      href={`/products/${product.slug}`}
+      href={`/products/${product.id}`}
       className="card-surface group relative flex flex-col overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-lift"
     >
       <div className="relative aspect-[4/3] overflow-hidden">
@@ -24,11 +25,15 @@ export function ProductCard({ product }: { product: ProductWithCategory }) {
           placeholderIcon={product.category?.slug === "machinery" ? "crop" : "leaf"}
           className="transition-transform duration-500 group-hover:scale-105"
         />
-        <div className="absolute left-3 top-3">
-          <Badge tone={tradeTone}>
-            {product.tradeType === "BOTH" ? "Import & Export" : `${product.tradeType.toLowerCase()} availability`}
-          </Badge>
-        </div>
+        {tradeLabels.length > 0 ? (
+          <div className="absolute left-3 top-3 flex max-w-[calc(100%-1.5rem)] flex-wrap gap-1.5">
+            {tradeLabels.map((label) => (
+              <Badge key={label} tone="forest">
+                {label}
+              </Badge>
+            ))}
+          </div>
+        ) : null}
       </div>
 
       <div className="flex flex-1 flex-col p-5">

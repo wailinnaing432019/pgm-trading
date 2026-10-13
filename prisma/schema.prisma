@@ -71,16 +71,9 @@ enum ProductStatus {
   ARCHIVED
 }
 
-enum TradeType {
-  EXPORT
-  IMPORT
-  BOTH
-}
-
 model Product {
   id          String       @id @default(cuid())
   title       String
-  slug        String       @unique
   summary     String
   description String
 
@@ -91,7 +84,7 @@ model Product {
   specs        Json    @default("{}")
   images       String[] @default([])
   attachments  String[] @default([])
-  tradeType    TradeType @default(EXPORT)
+  tradeTypes   ProductTradeType[]
   origin       String?
   unit         String?
   price        Decimal? @db.Decimal(14, 2)
@@ -107,7 +100,32 @@ model Product {
   @@index([categoryId])
   @@index([status])
   @@index([isFeatured])
-  @@index([slug])
+}
+
+// Managed listing/trade modes (e.g. "Export", "Import", "Rentable").
+// Multi-select on each product — the public site only shows the badges.
+model TradeType {
+  id          String   @id @default(cuid())
+  label       String   @unique
+  description String?
+  position    Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  products ProductTradeType[]
+
+  @@index([position])
+}
+
+// Junction between products and their managed trade types.
+model ProductTradeType {
+  productId   String
+  tradeTypeId String
+  product     Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  tradeType   TradeType @relation(fields: [tradeTypeId], references: [id], onDelete: Cascade)
+
+  @@id([productId, tradeTypeId])
 }
 
 // ---------------------------------------------------------------------------
@@ -175,7 +193,6 @@ model Office {
 model Service {
   id          String   @id @default(cuid())
   title       String
-  slug        String   @unique
   description String
   icon        String? // lucide icon key
   image       String?
@@ -257,7 +274,6 @@ enum PostStatus {
 model Blog {
   id          String    @id @default(cuid())
   title       String
-  slug        String    @unique
   excerpt     String
   body        String // rich text / HTML from the admin editor
   coverImage  String?
@@ -271,7 +287,6 @@ model Blog {
   viewCount   Int       @default(0)
 
   @@index([status, publishedAt])
-  @@index([slug])
 }
 
 // ---------------------------------------------------------------------------

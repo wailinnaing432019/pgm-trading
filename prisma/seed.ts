@@ -29,79 +29,115 @@ async function main() {
     ].map((c) =>
       prisma.category.upsert({
         where: { slug: c.slug },
-        update: {},
+        update: c,
         create: c,
       })
     )
   )
 
-  const [fresh, machinery] = categories
-  const featured = await prisma.product.findMany({ take: 1 })
+  const tradeTypes = await Promise.all(
+    [
+      { label: "Export", description: "Sold internationally from Myanmar." },
+      { label: "Import", description: "Distributed within Myanmar from abroad." },
+      { label: "Import & Export", description: "Traded in both directions." },
+      { label: "Rentable", description: "Available for hire — often machinery." },
+    ].map((t) =>
+      prisma.tradeType.upsert({
+        where: { label: t.label },
+        update: t,
+        create: t,
+      })
+    )
+  )
 
-  if (featured.length === 0 && fresh && machinery) {
-    await prisma.product.createMany({
-      data: [
-        {
-          title: "Myanmar Jasmine Rice",
-          slug: "myanmar-jasmine-rice",
-          summary: "Premium 25% broken Jasmine rice, export grade.",
-          description:
-            "Long-grain fragrant Myanmar Jasmine rice grown in the Ayeyarwady delta, milled to export specification and shipped worldwide in 1kg–25kg retail and 50kg bulk bags.",
-          categoryId: fresh.id,
-          tradeType: "EXPORT",
-          origin: "Myanmar",
-          unit: "MT",
-          price: "720",
-          status: "PUBLISHED",
-          availability: 500,
-          isFeatured: true,
-          specs: {
-            packaging: "1kg / 5kg / 25kg retail, 50kg bulk PP bags",
-            moisture: "≤ 14%",
-            purity: "95% min",
-            certification: "GAP, HACCP",
-          },
-        },
-        {
-          title: "Mung Beans (Green Gram)",
-          slug: "mung-beans-green-gram",
-          summary: "FAQ machine-cleaned mung beans for export.",
-          description:
-            "Clean, uniform, high-protein mung beans ideal for sprouting and processing, machine-cleaned with strict moisture control.",
-          categoryId: fresh.id,
-          tradeType: "EXPORT",
-          origin: "Myanmar",
-          unit: "MT",
-          price: "1150",
-          status: "PUBLISHED",
-          isFeatured: true,
-          specs: {
-            packaging: "25kg / 50kg PP bags",
-            moisture: "≤ 12%",
-            purity: "99% min",
-          },
-        },
-        {
-          title: "Walk-Behind Tractor",
-          slug: "walk-behind-tractor",
-          summary: "8 HP diesel power tiller for small-to-medium farms.",
-          description:
-            "Durable 8 HP diesel tiller with reversible operation, ideal for paddy and upland farms. Supplied with spare parts kit and 12-month warranty.",
-          categoryId: machinery.id,
-          tradeType: "IMPORT",
-          origin: "China (distributed in Myanmar)",
-          unit: "Unit",
-          price: "1850",
-          status: "PUBLISHED",
-          isFeatured: true,
-          specs: {
-            engine: "8 HP, 200cc single cylinder air-cooled diesel",
-            gearbox: "3F + 1R",
-            attachment: "Rota-cultivator, trailer coupling",
-          },
-        },
-      ],
-    })
+  const tradeTypeByLabel = Object.fromEntries(tradeTypes.map((t) => [t.label, t.id]))
+
+  const products = [
+    {
+      title: "Myanmar Jasmine Rice",
+      summary: "Premium 25% broken Jasmine rice, export grade.",
+      description:
+        "Long-grain fragrant Myanmar Jasmine rice grown in the Ayeyarwady delta, milled to export specification and shipped worldwide in 1kg–25kg retail and 50kg bulk bags.",
+      categorySlug: "fresh-crops",
+      tradeTypeLabels: ["Export"],
+      origin: "Myanmar",
+      unit: "MT",
+      price: "720",
+      status: "PUBLISHED",
+      availability: 500,
+      isFeatured: true,
+      specs: {
+        packaging: "1kg / 5kg / 25kg retail, 50kg bulk PP bags",
+        moisture: "≤ 14%",
+        purity: "95% min",
+        certification: "GAP, HACCP",
+      },
+    },
+    {
+      title: "Mung Beans (Green Gram)",
+      summary: "FAQ machine-cleaned mung beans for export.",
+      description:
+        "Clean, uniform, high-protein mung beans ideal for sprouting and processing, machine-cleaned with strict moisture control.",
+      categorySlug: "fresh-crops",
+      tradeTypeLabels: ["Export"],
+      origin: "Myanmar",
+      unit: "MT",
+      price: "1150",
+      status: "PUBLISHED",
+      isFeatured: true,
+      specs: {
+        packaging: "25kg / 50kg PP bags",
+        moisture: "≤ 12%",
+        purity: "99% min",
+      },
+    },
+    {
+      title: "Walk-Behind Tractor",
+      summary: "8 HP diesel power tiller for small-to-medium farms.",
+      description:
+        "Durable 8 HP diesel tiller with reversible operation, ideal for paddy and upland farms. Supplied with spare parts kit and 12-month warranty.",
+      categorySlug: "machinery",
+      tradeTypeLabels: ["Import", "Rentable"],
+      origin: "China (distributed in Myanmar)",
+      unit: "Unit",
+      price: "1850",
+      status: "PUBLISHED",
+      isFeatured: true,
+      specs: {
+        engine: "8 HP, 200cc single cylinder air-cooled diesel",
+        gearbox: "3F + 1R",
+        attachment: "Rota-cultivator, trailer coupling",
+      },
+    },
+  ] as const
+
+  for (const p of products) {
+    const { categorySlug, tradeTypeLabels = [], ...data } = p
+    const category = categories.find((c) => c.slug === categorySlug)
+    if (!category) continue
+
+    const typeIds = tradeTypeLabels
+      .map((label) => tradeTypeByLabel[label])
+      .filter((id): id is string => Boolean(id))
+
+    const tradeTypesLink = {
+      tradeTypes: {
+        deleteMany: {},
+        create: typeIds.map((tradeTypeId) => ({
+          tradeType: { connect: { id: tradeTypeId } },
+        })),
+      },
+    }
+
+    const existing = await prisma.product.findFirst({ where: { title: p.title } })
+    if (existing) {
+      await prisma.product.update({
+        where: { id: existing.id },
+        data: { ...data, ...tradeTypesLink, categoryId: category.id },
+      })
+    } else {
+      await prisma.product.create({ data: { ...data, ...tradeTypesLink, categoryId: category.id } })
+    }
   }
 
   const homeSections: { key: string; title: string; subtitle?: string; body?: string }[] = [
@@ -151,18 +187,43 @@ async function main() {
       title: "Ready to trade? Let's talk specifications, pricing and shipping windows.",
       subtitle: "Our export desk responds within one business day with grades, load availability and freight quotes.",
     },
-    {
-      key: "newsletter",
-      title: "Market insights, straight to your inbox",
-      body: "Seasonal produce updates, export price outlooks and trade alerts — weekly, no spam.",
-    },
   ]
 
   for (const s of homeSections) {
+    const data = {
+      title: s.title,
+      subtitle: s.subtitle ?? null,
+      body: "body" in s && s.body ? s.body : null,
+    }
     await prisma.pageSection.upsert({
       where: { page_key: { page: "home", key: s.key } },
-      update: {},
-      create: { page: "home", key: s.key, title: s.title, subtitle: s.subtitle, body: "body" in s ? s.body : null },
+      update: data,
+      create: { page: "home", key: s.key, ...data },
+    })
+  }
+
+  // Shared sections (edge to edge): footer newsletter band content.
+  await prisma.pageSection.deleteMany({ where: { page: "home", key: "newsletter" } })
+
+  const sharedSections: { key: string; title: string; subtitle?: string; body?: string }[] = [
+    {
+      key: "newsletter",
+      title: "Market insights, straight to your inbox",
+      body:
+        "Seasonal produce updates, export price outlooks and trade alerts — weekly, no spam.",
+    },
+  ]
+
+  for (const s of sharedSections) {
+    const data = {
+      title: s.title,
+      subtitle: s.subtitle ?? null,
+      body: s.body ?? null,
+    }
+    await prisma.pageSection.upsert({
+      where: { page_key: { page: "shared", key: s.key } },
+      update: data,
+      create: { page: "shared", key: s.key, ...data },
     })
   }
 
@@ -209,10 +270,15 @@ async function main() {
   ]
 
   for (const s of aboutSections) {
+    const data = {
+      title: s.title,
+      subtitle: s.subtitle ?? null,
+      body: "body" in s && s.body ? s.body : null,
+    }
     await prisma.pageSection.upsert({
       where: { page_key: { page: "about", key: s.key } },
-      update: {},
-      create: { page: "about", key: s.key, title: s.title, subtitle: s.subtitle, body: "body" in s && s.body ? s.body : null },
+      update: data,
+      create: { page: "about", key: s.key, ...data },
     })
   }
 
@@ -243,10 +309,15 @@ async function main() {
   ]
 
   for (const s of servicesSections) {
+    const data = {
+      title: s.title,
+      subtitle: s.subtitle ?? null,
+      body: "body" in s && s.body ? s.body : null,
+    }
     await prisma.pageSection.upsert({
       where: { page_key: { page: "services", key: s.key } },
-      update: {},
-      create: { page: "services", key: s.key, title: s.title, subtitle: s.subtitle, body: "body" in s && s.body ? s.body : null },
+      update: data,
+      create: { page: "services", key: s.key, ...data },
     })
   }
 
@@ -261,10 +332,15 @@ async function main() {
   ]
 
   for (const s of contactSections) {
+    const data = {
+      title: s.title,
+      subtitle: s.subtitle ?? null,
+      body: "body" in s && s.body ? s.body : null,
+    }
     await prisma.pageSection.upsert({
       where: { page_key: { page: "contact", key: s.key } },
-      update: {},
-      create: { page: "contact", key: s.key, title: s.title, subtitle: s.subtitle, body: "body" in s && s.body ? s.body : null },
+      update: data,
+      create: { page: "contact", key: s.key, ...data },
     })
   }
 
@@ -276,52 +352,47 @@ async function main() {
   ]
 
   for (const [i, s] of stats.entries()) {
+    const data = { ...s, position: i }
     await prisma.stat.upsert({
       where: { id: `${i}` },
-      update: {},
-      create: { ...s, id: `${i}`, position: i },
+      update: data,
+      create: { ...data, id: `${i}` },
     })
   }
 
   const services = [
     {
       title: "Import & Export Logistics",
-      slug: "import-export-logistics",
       description: "End-to-end documentation, customs clearance, inspection and freight for agro-commodities.",
       icon: "Ship",
       position: 0,
     },
     {
       title: "Cold-Chain Distribution",
-      slug: "cold-chain-distribution",
       description: "18,000 MT of temperature-controlled warehousing with real-time stock visibility and last-mile delivery.",
       icon: "Snowflake",
       position: 1,
     },
     {
       title: "Contract Farming & Sourcing",
-      slug: "contract-farming-sourcing",
       description: "Grower contracts, input supply and buy-back programmes across Myanmar's key production regions.",
       icon: "Sprout",
       position: 2,
     },
     {
       title: "Bulk Commodity Trading",
-      slug: "bulk-commodity-trading",
       description: "Rice, pulses, oilseeds and maize traded in bulk with transparent grading and competitive pricing.",
       icon: "Boxes",
       position: 3,
     },
     {
       title: "Customs & Compliance",
-      slug: "customs-compliance",
       description: "SGS coordination, phytosanitary certification, fumigation and certificate-of-origin handling.",
       icon: "FileCheck2",
       position: 4,
     },
     {
       title: "Warehousing & Inventory",
-      slug: "warehousing-inventory",
       description: "Bulk and retail storage with pest control, quality monitoring and digital stock reporting.",
       icon: "Warehouse",
       position: 5,
@@ -329,11 +400,15 @@ async function main() {
   ]
 
   for (const s of services) {
-    await prisma.service.upsert({
-      where: { slug: s.slug },
-      update: {},
-      create: { ...s, isActive: true },
-    })
+    const existing = await prisma.service.findFirst({ where: { title: s.title } })
+    if (existing) {
+      await prisma.service.update({
+        where: { id: existing.id },
+        data: { ...s, isActive: true },
+      })
+    } else {
+      await prisma.service.create({ data: { ...s, isActive: true } })
+    }
   }
 
   const offices = [
@@ -363,9 +438,10 @@ async function main() {
   ]
 
   for (const office of offices) {
+    const { id, ...data } = office
     await prisma.office.upsert({
-      where: { id: office.id },
-      update: {},
+      where: { id },
+      update: data,
       create: office,
     })
   }
@@ -378,9 +454,10 @@ async function main() {
   ]
 
   for (const value of values) {
+    const { id, ...data } = value
     await prisma.companyValue.upsert({
-      where: { id: value.id },
-      update: {},
+      where: { id },
+      update: data,
       create: value,
     })
   }
@@ -393,9 +470,10 @@ async function main() {
   ]
 
   for (const step of supplySteps) {
+    const { id, ...data } = step
     await prisma.supplyStep.upsert({
-      where: { id: step.id },
-      update: {},
+      where: { id },
+      update: data,
       create: step,
     })
   }
@@ -410,10 +488,11 @@ async function main() {
   ]
 
   for (const [i, title] of capabilities.entries()) {
+    const id = `cap-${i + 1}`
     await prisma.checklistItem.upsert({
-      where: { id: `cap-${i + 1}` },
-      update: {},
-      create: { id: `cap-${i + 1}`, group: "capabilities", title, position: i },
+      where: { id },
+      update: { group: "capabilities", title, position: i },
+      create: { id, group: "capabilities", title, position: i },
     })
   }
 
@@ -426,10 +505,11 @@ async function main() {
   ]
 
   for (const [i, title] of certifications.entries()) {
+    const id = `cert-${i + 1}`
     await prisma.checklistItem.upsert({
-      where: { id: `cert-${i + 1}` },
-      update: {},
-      create: { id: `cert-${i + 1}`, group: "certifications", title, position: i },
+      where: { id },
+      update: { group: "certifications", title, position: i },
+      create: { id, group: "certifications", title, position: i },
     })
   }
 
@@ -441,33 +521,34 @@ async function main() {
   ]
 
   for (const milestone of milestones) {
+    const { id, ...data } = milestone
     await prisma.milestone.upsert({
-      where: { id: milestone.id },
-      update: {},
+      where: { id },
+      update: data,
       create: milestone,
     })
   }
 
+  const settingMeta = {
+    companyName: "Pacific Global Myanmar",
+    legalName: "Pacific Global Myanmar Co., Ltd.",
+    shortName: "PGM",
+    brandTag: "Trade & Distribution",
+    tagline: "From Myanmar Fields to Global Markets",
+    description:
+      "Pacific Global Myanmar links farmers, processors and international buyers through transparent import, export, trading and cold-chain distribution.",
+    url: "http://localhost:3000",
+    email: "trade@pgm-trading.com",
+    phone: "+95 1 234 5678",
+    whatsapp: "+959 123 456 789",
+    facebook: "https://facebook.com/pgmtrading",
+    linkedin: "https://linkedin.com/company/pgmtrading",
+  }
+
   await prisma.siteSetting.upsert({
     where: { id: 1 },
-    update: {},
-    create: {
-      id: 1,
-      meta: {
-        companyName: "Pacific Global Myanmar",
-        legalName: "Pacific Global Myanmar Co., Ltd.",
-        shortName: "PGM",
-        tagline: "From Myanmar Fields to Global Markets",
-        description:
-          "Pacific Global Myanmar links farmers, processors and international buyers through transparent import, export, trading and cold-chain distribution.",
-        url: "http://localhost:3000",
-        email: "trade@pgm-trading.com",
-        phone: "+95 1 234 5678",
-        whatsapp: "+959 123 456 789",
-        facebook: "https://facebook.com/pgmtrading",
-        linkedin: "https://linkedin.com/company/pgmtrading",
-      },
-    },
+    update: { meta: settingMeta },
+    create: { id: 1, meta: settingMeta },
   })
 
   await prisma.newsletter.upsert({

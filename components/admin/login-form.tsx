@@ -1,19 +1,30 @@
 "use client";
 
-import { useActionState } from "react";
-import { Loader2, Lock, ShieldCheck } from "lucide-react";
+import { useActionState, useEffect } from "react";
+import { Loader2, ShieldCheck } from "lucide-react";
 import { loginAdmin, type AdminActionState } from "@/lib/actions/admin";
+import { useToast } from "@/components/admin/toast";
 
 const initialState: AdminActionState = { ok: false };
 
-export function LoginForm() {
+export function LoginForm({ logo }: { logo?: string }) {
   const [state, action, pending] = useActionState<AdminActionState, FormData>(loginAdmin, initialState);
+  const { pushToast } = useToast();
+
+  useEffect(() => {
+    if (state.error) pushToast("error", state.error);
+  }, [state, pushToast]);
 
   return (
     <div className="card-surface w-full max-w-md p-8">
       <div className="flex items-center gap-3">
         <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-forest-700 text-gold-300">
-          <ShieldCheck className="h-6 w-6" aria-hidden />
+          {logo ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={logo} alt="" className="h-8 w-auto max-w-[120px] object-contain" />
+          ) : (
+            <ShieldCheck className="h-6 w-6" aria-hidden />
+          )}
         </span>
         <div>
           <h1 className="font-serif text-xl font-semibold text-forest-950">PGM Admin</h1>
@@ -45,12 +56,6 @@ export function LoginForm() {
             className="h-12 w-full rounded-xl border border-sand-200 bg-cream px-4 text-sm focus:border-forest-500 focus:outline-none focus:ring-2 focus:ring-forest-500/30"
           />
         </div>
-
-        {state.error ? (
-          <p className="flex items-center gap-1.5 text-sm text-soil-700" role="alert">
-            <Lock className="h-4 w-4" aria-hidden /> {state.error}
-          </p>
-        ) : null}
 
         <button
           type="submit"

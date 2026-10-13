@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ProductCard } from "@/components/products/product-card";
 import { ProductFilters } from "@/components/products/product-filters";
-import { getCategories, getProducts } from "@/lib/queries";
+import { getCategories, getProducts, getTradeTypes } from "@/lib/queries";
+import { CategoryCard } from "@/components/categories/category-card";
 import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = {
@@ -17,19 +18,30 @@ export default async function ProductsPage({
   searchParams: Promise<{ category?: string; trade?: string; q?: string }>;
 }) {
   const { category = "", trade = "", q = "" } = await searchParams;
-  const validTrade = ["EXPORT", "IMPORT", "BOTH"].includes(trade) ? trade : undefined;
+
+  const tradeTypes = await getTradeTypes();
+  const validTrade = tradeTypes.some((t) => t.id === trade);
 
   const [categories, catalog] = await Promise.all([
     getCategories(),
     getProducts({
       category: category || undefined,
-      tradeType: validTrade as "EXPORT" | "IMPORT" | "BOTH" | undefined,
+      tradeType: validTrade ? trade : undefined,
       q: q || undefined,
       limit: 24,
     }),
   ]);
 
   const activeCategory = categories.find((c) => c.slug === category);
+
+  function makeCategoryHref(catSlug: string) {
+    const params = new URLSearchParams();
+    if (catSlug) params.set("category", catSlug);
+    if (validTrade && trade) params.set("trade", trade);
+    if (q) params.set("q", q);
+    const qs = params.toString();
+    return qs ? `/products?${qs}` : "/products";
+  }
 
   return (
     <main>
@@ -51,34 +63,35 @@ export default async function ProductsPage({
           <div className="section-container flex flex-col gap-5">
             <ProductFilters
               initialSearch={q}
-              initialTrade={trade}
+              initialTrade={validTrade ? trade : ""}
               initialCategory={category}
+              tradeTypes={tradeTypes.map((t) => ({ id: t.id, label: t.label }))}
             />
 
-            <nav className="flex gap-2 overflow-x-auto pb-1" aria-label="Categories">
-              <Link
-                href="/products"
-                className={cn(
-                  "shrink-0 rounded-full px-4 py-2 text-sm font-medium transition-colors",
-                  !category ? "bg-forest-700 text-cream" : "bg-white text-forest-800 ring-1 ring-sand-200 hover:bg-forest-50"
-                )}
-              >
-                All Categories
-              </Link>
+            {/* Category cards */}
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 pt-2">
+              {/* All Categories card */}
+              <CategoryCard
+                category={{
+                  id: "all",
+                  name: "All Categories",
+                  slug: "",
+                  image: undefined,
+                  _count: { products: catalog.total },
+                }}
+                isActive={!category}
+                href={makeCategoryHref("")}
+              />
+
               {categories.map((c) => (
-                <Link
+                <CategoryCard
                   key={c.id}
-                  href={`/products?category=${c.slug}`}
-                  className={cn(
-                    "shrink-0 rounded-full px-4 py-2 text-sm font-medium transition-colors",
-                    category === c.slug ? "bg-forest-700 text-cream" : "bg-white text-forest-800 ring-1 ring-sand-200 hover:bg-forest-50"
-                  )}
-                >
-                  {c.name}
-                  <span className="ml-1.5 text-xs opacity-60">{c._count.products}</span>
-                </Link>
+                  category={c}
+                  isActive={category === c.slug}
+                  href={makeCategoryHref(c.slug)}
+                />
               ))}
-            </nav>
+            </div>
           </div>
         </section>
 

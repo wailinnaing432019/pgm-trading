@@ -41,6 +41,11 @@ export const metadata: Metadata = {
     locale: "en_MM",
     siteName: "PGM Trading",
   },
+  icons: {
+    icon: "/api/brand-icon",
+    shortcut: "/api/brand-icon",
+    apple: "/api/brand-icon",
+  },
   robots: { index: true, follow: true },
 };
 
@@ -54,6 +59,7 @@ export default async function RootLayout(props: LayoutProps<"/">) {
   return (
     <html
       lang="en"
+      data-scroll-behavior="smooth"
       className={`${geistSans.variable} ${geistMono.variable} ${geistSerif.variable} h-full antialiased`}
     >
       <body className="flex min-h-full flex-col">

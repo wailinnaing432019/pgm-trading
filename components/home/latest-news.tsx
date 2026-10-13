@@ -33,7 +33,7 @@ export async function LatestNews({ posts }: { posts: Blog[] }) {
         <div className="mt-12 grid gap-6 lg:grid-cols-3">
           {/* Lead article */}
           <Link
-            href={`/news/${lead.slug}`}
+            href={`/news/${lead.id}`}
             className="card-surface group relative flex flex-col overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-lift lg:col-span-2"
           >
             <div className="relative h-72 overflow-hidden lg:h-80">
@@ -64,7 +64,7 @@ export async function LatestNews({ posts }: { posts: Blog[] }) {
             {rest.map((post) => (
               <Link
                 key={post.id}
-                href={`/news/${post.slug}`}
+                href={`/news/${post.id}`}
                 className="card-surface group flex gap-4 p-4 transition-all duration-300 hover:-translate-y-1 hover:shadow-lift"
               >
                 <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-xl">

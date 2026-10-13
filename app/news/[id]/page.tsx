@@ -5,16 +5,16 @@ import { ArrowLeft, CalendarDays, User } from "lucide-react";
 import { AssetImage } from "@/components/ui/asset-image";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { getBlogBySlug } from "@/lib/queries";
+import { getBlogById } from "@/lib/queries";
 import { formatDate } from "@/lib/utils";
 
 export async function generateMetadata({
   params,
 }: {
-  params: Promise<{ slug: string }>;
+  params: Promise<{ id: string }>;
 }): Promise<Metadata> {
-  const { slug } = await params;
-  const post = await getBlogBySlug(slug);
+  const { id } = await params;
+  const post = await getBlogById(id);
   if (!post) return { title: "Article not found" };
   return { title: post.title, description: post.excerpt };
 }
@@ -22,10 +22,10 @@ export async function generateMetadata({
 export default async function NewsDetailPage({
   params,
 }: {
-  params: Promise<{ slug: string }>;
+  params: Promise<{ id: string }>;
 }) {
-  const { slug } = await params;
-  const post = await getBlogBySlug(slug);
+  const { id } = await params;
+  const post = await getBlogById(id);
   if (!post) notFound();
 
   return (
