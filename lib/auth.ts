@@ -1,5 +1,5 @@
 import "server-only";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { createHash, randomBytes } from "crypto";
 import { prisma } from "@/lib/prisma";
@@ -9,6 +9,51 @@ const SESSION_TTL_MS = 1000 * 60 * 60 * 24 * 7; // 7 days
 
 function hashToken(token: string): string {
   return createHash("sha256").update(token).digest("hex");
+}
+
+function parseBoolean(value: string | undefined): boolean | undefined {
+  switch (value?.trim().toLowerCase()) {
+    case "1":
+    case "true":
+    case "yes":
+    case "on":
+      return true;
+    case "0":
+    case "false":
+    case "no":
+    case "off":
+      return false;
+    default:
+      return undefined;
+  }
+}
+
+/**
+ * Decide whether the session cookie must carry the `Secure` flag.
+ *
+ * Cookies marked `Secure` are silently dropped by browsers when the site is
+ * served over plain HTTP, which makes a successful login redirect straight
+ * back to the sign-in page. Deriving the flag from the actual request (rather
+ * than `NODE_ENV` alone) keeps HTTP-only deployments usable while still
+ * protecting cookies behind TLS.
+ *
+ * `AUTH_COOKIE_SECURE` can force the behaviour when running behind a proxy
+ * that does not forward `X-Forwarded-Proto`.
+ */
+async function shouldUseSecureCookies(): Promise<boolean> {
+  const override = parseBoolean(process.env.AUTH_COOKIE_SECURE);
+  if (override !== undefined) return override;
+
+  const forwardedProto = (await headers())
+    .get("x-forwarded-proto")
+    ?.split(",")[0]
+    ?.trim()
+    .toLowerCase();
+  if (forwardedProto === "https") return true;
+  if (forwardedProto === "http") return false;
+
+  // No proxy information: assume production is served over HTTPS.
+  return process.env.NODE_ENV === "production";
 }
 
 export async function createSession(userId: string): Promise<void> {
@@ -23,7 +68,7 @@ export async function createSession(userId: string): Promise<void> {
   cookieStore.set(SESSION_COOKIE, rawToken, {
     httpOnly: true,
     sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
+    secure: await shouldUseSecureCookies(),
     path: "/",
     expires: expiresAt,
   });

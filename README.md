@@ -70,6 +70,36 @@ subscriptions.
 | `npm run db:push` | Push the schema without creating a migration |
 | `npm run db:seed` | Seed categories, products, page content and the admin user |
 
+## Deploying on Ubuntu / AWS
+
+The production server must be reachable over HTTPS, or the browser will drop the
+`Secure` admin session cookie and the login page will keep reappearing.
+
+Recommended setup: run `npm run build && npm run start` behind nginx with a TLS
+certificate, and forward the original protocol/host. For example:
+
+```nginx
+location / {
+    proxy_pass http://127.0.0.1:3000;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+}
+```
+
+`X-Forwarded-Proto` lets the app mark the session cookie `Secure` only when the
+site is actually served over HTTPS.
+
+If you are testing over plain HTTP (e.g. `http://EC2-IP:3000`), add this to
+`.env` and restart the server:
+
+```env
+AUTH_COOKIE_SECURE="false"
+```
+
+Remove it once HTTPS is configured.
+
 ## Notes
 
 - Public pages read their content from PostgreSQL. Admin actions call
