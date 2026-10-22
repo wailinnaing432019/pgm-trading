@@ -6,6 +6,7 @@ import { CheckCircle2, FileText, Loader2, Send } from "lucide-react";
 import { submitInquiry, type ActionState } from "@/lib/actions/public";
 import { useLanguage } from "@/lib/i18n";
 import { WhatsAppIcon, ViberIcon } from "@/components/ui/trade-icons";
+import { viberHref, whatsappHref } from "@/lib/contact-links";
 
 const initialState: ActionState = { ok: false };
 
@@ -32,12 +33,11 @@ export function InquiryForm({
   const [destinationPort, setDestinationPort] = useState("");
   const [packaging, setPackaging] = useState("50kg PP Bags");
 
-  const cleanWhatsapp = whatsapp.replace(/[^0-9]/g, "");
-  const cleanViber = viber.replace(/[^0-9]/g, "");
-
-  const quickWhatsappText = encodeURIComponent(
-    `Hello PGM Trade Desk, I would like to request an official quote for: ${initialSubject || "agricultural commodities"}`
-  );
+  const quickWhatsappMessage = `Hello PGM Trade Desk, I would like to request an official quote for: ${
+    initialSubject || "agricultural commodities"
+  }`;
+  const whatsappUrl = whatsappHref(whatsapp, quickWhatsappMessage);
+  const viberUrl = viberHref(viber);
 
   return (
     <div className="card-surface overflow-hidden rounded-2xl border border-sand-200 bg-white p-6 md:p-8 shadow-sm">
@@ -72,24 +72,30 @@ export function InquiryForm({
 
         {/* Instant Chat Shortcuts */}
         <div className="flex items-center gap-2">
-          <a
-            href={`https://wa.me/${cleanWhatsapp}?text=${quickWhatsappText}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-1.5 rounded-lg bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-800 transition-colors hover:bg-emerald-600 hover:text-white"
-            title="Chat on WhatsApp"
-          >
-            <WhatsAppIcon className="h-4 w-4 text-emerald-600 group-hover:text-white" />
-            <span className="hidden sm:inline">WhatsApp</span>
-          </a>
-          <a
-            href={`viber://chat?number=%2B${cleanViber}`}
-            className="flex items-center gap-1.5 rounded-lg bg-purple-50 px-3 py-1.5 text-xs font-semibold text-purple-800 transition-colors hover:bg-purple-600 hover:text-white"
-            title="Chat on Viber"
-          >
-            <ViberIcon className="h-4 w-4 text-purple-600 group-hover:text-white" />
-            <span className="hidden sm:inline">Viber</span>
-          </a>
+          {whatsappUrl && (
+            <a
+              href={whatsappUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 rounded-lg bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-800 transition-colors hover:bg-emerald-600 hover:text-white"
+              title="Chat on WhatsApp"
+            >
+              <WhatsAppIcon className="h-4 w-4 text-emerald-600 group-hover:text-white" />
+              <span className="hidden sm:inline">WhatsApp</span>
+            </a>
+          )}
+          {viberUrl && (
+            <a
+              href={viberUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 rounded-lg bg-purple-50 px-3 py-1.5 text-xs font-semibold text-purple-800 transition-colors hover:bg-purple-600 hover:text-white"
+              title="Chat on Viber"
+            >
+              <ViberIcon className="h-4 w-4 text-purple-600 group-hover:text-white" />
+              <span className="hidden sm:inline">Viber</span>
+            </a>
+          )}
         </div>
       </div>
 

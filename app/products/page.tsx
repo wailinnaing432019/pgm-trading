@@ -4,12 +4,41 @@ import { ProductCard } from "@/components/products/product-card";
 import { ProductFilters } from "@/components/products/product-filters";
 import { getCategories, getProducts, getTradeTypes } from "@/lib/queries";
 import { CategoryCard } from "@/components/categories/category-card";
+import { pageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: "Products & Commodities Catalog",
-  description:
-    "Browse Myanmar agricultural exports and imports — fresh crops, grains, fertilizers, machinery and cold-chain logistics.",
-};
+export async function generateMetadata({
+  searchParams,
+}: {
+  searchParams: Promise<{ category?: string; trade?: string; q?: string }>;
+}): Promise<Metadata> {
+  const { category = "", trade = "", q = "" } = await searchParams;
+  const search = q.trim();
+
+  if (!category && !trade && !search) {
+    return pageMetadata({
+      title: "Products & Commodities Catalog",
+      description:
+        "Browse Myanmar agricultural exports and imports — fresh crops, grains, fertilizers, machinery and cold-chain logistics.",
+      path: "/products",
+    });
+  }
+
+  const categories = category ? await getCategories() : [];
+  const active = categories.find((c) => c.slug === category);
+
+  return pageMetadata({
+    title: active
+      ? `${active.name} — Products`
+      : search
+        ? `Search results for “${search}”`
+        : "Filtered products",
+    description:
+      active?.description ||
+      "Filtered view of the Pacific Global Myanmar agricultural import and export catalog.",
+    path: "/products",
+    noIndex: true,
+  });
+}
 
 export default async function ProductsPage({
   searchParams,
@@ -67,15 +96,14 @@ export default async function ProductsPage({
               tradeTypes={tradeTypes.map((t) => ({ id: t.id, label: t.label }))}
             />
 
-            {/* Category cards */}
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 pt-2">
-              {/* All Categories card */}
+            {/* Category filter pills */}
+            <div className="flex flex-wrap items-center gap-2 pt-2">
+              {/* All Categories pill */}
               <CategoryCard
                 category={{
                   id: "all",
                   name: "All Categories",
                   slug: "",
-                  image: undefined,
                   _count: { products: catalog.total },
                 }}
                 isActive={!category}

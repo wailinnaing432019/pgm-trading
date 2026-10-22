@@ -7,7 +7,6 @@ import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { LanguageProvider } from "@/lib/i18n";
 import { TradeDeskFloating } from "@/components/ui/trade-desk-floating";
-import { GoogleTranslate } from "@/components/layout/google-translate";
 
 type Props = {
   settings: SiteSettings;
@@ -28,7 +27,6 @@ export function PublicChrome({ settings, offices, newsletter, children }: Props)
       {children}
       <Footer settings={settings} offices={offices} newsletter={newsletter} />
       <TradeDeskFloating settings={settings} />
-      <GoogleTranslate />
     </LanguageProvider>
   );
 }

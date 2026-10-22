@@ -1,120 +1,53 @@
-import { FolderTree, Trash2 } from "lucide-react";
+import Link from "next/link";
+import { FolderTree, SearchX } from "lucide-react";
 import { getAdminCategories } from "@/lib/queries";
-import { submitCategory, deleteCategory } from "@/lib/actions/admin";
-import { DangerSubmitButton } from "@/components/ui/danger-submit-button";
-import { ImageUploader } from "@/components/ui/image-uploader";
+import { submitCategory } from "@/lib/actions/admin";
+import { AddEntryDrawer } from "@/components/admin/collection-client-wrappers";
+import { SubmitButton } from "@/components/admin/submit-button";
+import { CategoryFields } from "@/components/admin/category-fields";
+import { CategoryRow } from "@/components/admin/category-row";
+import { SearchBox } from "@/components/admin/search-box";
+import { cn } from "@/lib/utils";
 
-type CategoryAdmin = {
-  id: string;
-  name: string;
-  slug: string;
-  description: string | null;
-  image: string | null;
-  position: number;
-  isActive: boolean;
-  _count: { products: number };
-};
+const statusFilters = [
+  { value: "", label: "All" },
+  { value: "visible", label: "Visible" },
+  { value: "hidden", label: "Hidden" },
+] as const;
 
-async function CategoryEditor({
-  category,
-  position,
-  isNew = false,
+type StatusFilter = (typeof statusFilters)[number]["value"];
+
+export default async function AdminCategoriesPage({
+  searchParams,
 }: {
-  category?: CategoryAdmin;
-  position: number;
-  isNew?: boolean;
+  searchParams: Promise<{ q?: string; status?: string }>;
 }) {
-  const deleteFormId = category ? `delete-category-${category.id}` : "";
-  const productCount = category?._count.products ?? 0;
+  const { q = "", status = "" } = await searchParams;
+  const activeStatus: StatusFilter =
+    status === "visible" || status === "hidden" ? status : "";
 
-  return (
-    <div
-      className={`card-surface grid gap-4 p-5 ${isNew ? "border-2 border-dashed border-sand-300" : ""}`}
-    >
-      <form action={submitCategory} className="grid gap-4">
-        {category ? <input type="hidden" name="id" value={category.id} /> : null}
-        <input type="hidden" name="position" value={String(position)} />
-
-        <div className="grid gap-4 sm:grid-cols-[1fr_1fr_120px]">
-          <div>
-            <label className="mb-1.5 block text-sm font-medium text-forest-900">Name *</label>
-            <input name="name" required defaultValue={category?.name ?? ""} className="input-admin" />
-          </div>
-          <div>
-            <label className="mb-1.5 block text-sm font-medium text-forest-900">Slug *</label>
-            <input name="slug" required defaultValue={category?.slug ?? ""} className="input-admin" />
-            <p className="mt-1 text-xs text-forest-700/60">Used in catalog filter links.</p>
-          </div>
-        </div>
-
-        <div>
-          <label className="mb-1.5 block text-sm font-medium text-forest-900">Description</label>
-          <textarea
-            name="description"
-            rows={2}
-            defaultValue={category?.description ?? ""}
-            className="input-admin"
-          />
-        </div>
-
-        <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_240px]">
-          <ImageUploader
-            name="image"
-            label="Category image"
-            initial={category?.image ? [category.image] : []}
-          />
-          <div className="flex flex-col justify-between gap-3">
-            <label className="flex items-center gap-2 pt-5">
-              <input
-                name="isActive"
-                type="checkbox"
-                defaultChecked={category ? category.isActive : true}
-                className="h-4 w-4 rounded border-sand-300 accent-forest-700"
-              />
-              <span className="text-sm font-medium text-forest-900">Visible on site</span>
-            </label>
-          </div>
-        </div>
-
-        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-sand-200 pt-4">
-          <button
-            type="submit"
-            className="inline-flex h-10 items-center rounded-full bg-forest-100 px-5 text-sm font-semibold text-forest-800 transition-colors hover:bg-forest-700 hover:text-cream"
-          >
-            Save
-          </button>
-
-          {isNew ? null : productCount > 0 ? (
-            <span className="text-sm text-forest-700/60">
-              {productCount} product{productCount === 1 ? "" : "s"} in this category — move them before deleting.
-            </span>
-          ) : (
-            <DangerSubmitButton
-              form={deleteFormId}
-              confirmText="Delete this category permanently? Products stay untouched if it is empty."
-              className="inline-flex h-10 items-center gap-1.5 rounded-full bg-soil-100 px-3 text-sm font-semibold text-soil-800 transition-colors hover:bg-soil-700 hover:text-cream"
-            >
-              <Trash2 className="h-4 w-4" aria-hidden /> Delete
-            </DangerSubmitButton>
-          )}
-        </div>
-      </form>
-
-      {!isNew ? (
-        <form id={deleteFormId} action={deleteCategory} hidden>
-<input type="hidden" name="id" value={category?.id ?? ""} />
-        </form>
-      ) : null}
-    </div>
+  const allCategories = await getAdminCategories();
+  const categories = await getAdminCategories({
+    q,
+    status: activeStatus || undefined,
+  });
+  const isFiltered = Boolean(q.trim()) || activeStatus !== "";
+  const nextPosition = allCategories.reduce(
+    (max, category) => Math.max(max, category.position + 1),
+    0
   );
-}
 
-export default async function AdminCategoriesPage() {
-  const categories = await getAdminCategories();
+  function filterHref(nextStatus: StatusFilter) {
+    const params = new URLSearchParams();
+    if (q.trim()) params.set("q", q.trim());
+    if (nextStatus) params.set("status", nextStatus);
+    const query = params.toString();
+    return query ? `/admin/categories?${query}` : "/admin/categories";
+  }
 
   return (
     <div>
-      <div className="flex items-end justify-between gap-4">
+      <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="font-serif text-2xl font-semibold text-forest-950">Categories</h1>
           <p className="mt-1 text-sm text-forest-700/70">
@@ -122,16 +55,111 @@ export default async function AdminCategoriesPage() {
           </p>
         </div>
         <span className="flex items-center gap-2 text-sm font-medium text-forest-700">
-          <FolderTree className="h-4 w-4" aria-hidden /> {categories.length} total
+          <FolderTree className="h-4 w-4" aria-hidden /> {categories.length}{" "}
+          {isFiltered ? `of ${allCategories.length}` : "total"}
         </span>
       </div>
 
-      <div className="mt-8 grid gap-5">
-        {categories.map((category, index) => (
-          <CategoryEditor key={category.id} category={category} position={index} />
-        ))}
+      <div className="mt-6">
+        <AddEntryDrawer addLabel="Add category">
+          <form action={submitCategory} className="grid gap-4">
+            <input type="hidden" name="position" value={String(nextPosition)} />
+            <CategoryFields />
+            <div className="flex items-center justify-end border-t border-sand-200/80 pt-4">
+              <SubmitButton variant="gold" pendingText="Creating…">
+                Create category
+              </SubmitButton>
+            </div>
+          </form>
+        </AddEntryDrawer>
+      </div>
 
-        <CategoryEditor position={categories.length} isNew />
+      <div className="mt-6 mb-4 flex flex-wrap items-center justify-between gap-3">
+        <SearchBox
+          basePath="/admin/categories"
+          placeholder="Search name, slug or description…"
+        />
+        <div
+          className="flex items-center gap-1 rounded-full border border-sand-200 bg-white p-0.5"
+          role="group"
+          aria-label="Filter by visibility"
+        >
+          {statusFilters.map((filter) => {
+            const active = activeStatus === filter.value;
+            return (
+              <Link
+                key={filter.value || "all"}
+                href={filterHref(filter.value)}
+                scroll={false}
+                aria-current={active ? "page" : undefined}
+                className={cn(
+                  "rounded-full px-3 py-1.5 text-xs font-semibold transition-colors",
+                  active
+                    ? "bg-forest-700 text-cream"
+                    : "text-forest-700 hover:bg-forest-50 hover:text-forest-950"
+                )}
+              >
+                {filter.label}
+              </Link>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="card-surface overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[720px] text-left text-sm">
+            <thead>
+              <tr className="border-b border-sand-200 text-xs uppercase tracking-wider text-forest-700/60">
+                <th className="px-6 py-3.5 font-semibold">Category</th>
+                <th className="px-4 py-3.5 font-semibold">Description</th>
+                <th className="px-4 py-3.5 font-semibold">Products</th>
+                <th className="px-4 py-3.5 font-semibold">Status</th>
+                <th className="px-6 py-3.5 text-right font-semibold">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-sand-200">
+              {categories.length > 0 ? (
+                categories.map((category, index) => (
+                  <CategoryRow key={category.id} category={category} position={index} />
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={5} className="px-6 py-16 text-center">
+                    {isFiltered ? (
+                      <>
+                        <SearchX className="mx-auto h-10 w-10 text-forest-700/40" aria-hidden />
+                        <p className="mt-3 font-serif text-lg font-semibold text-forest-950">
+                          No categories match
+                        </p>
+                        <p className="mt-1 text-sm text-forest-700/70">
+                          Try another search term or{" "}
+                          <Link
+                            href="/admin/categories"
+                            className="font-semibold text-forest-700 underline underline-offset-4"
+                          >
+                            clear the filters
+                          </Link>
+                          .
+                        </p>
+                      </>
+                    ) : (
+                      <>
+                        <FolderTree className="mx-auto h-10 w-10 text-forest-700/40" aria-hidden />
+                        <p className="mt-3 font-serif text-lg font-semibold text-forest-950">
+                          No categories yet
+                        </p>
+                        <p className="mt-1 text-sm text-forest-700/70">
+                          Add your first category with the button above.
+                        </p>
+                      </>
+                    )}
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );

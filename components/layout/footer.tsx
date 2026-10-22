@@ -5,6 +5,7 @@ import { navLinks, type SiteSettings } from "@/lib/site";
 import { NewsletterForm } from "@/components/layout/newsletter-form";
 import { SiteLogo } from "@/components/layout/site-logo";
 import { WhatsAppIcon, ViberIcon, TelegramIcon } from "@/components/ui/trade-icons";
+import { telegramHref, viberHref, whatsappHref } from "@/lib/contact-links";
 
 function FacebookIcon({ className }: { className?: string }) {
   return (
@@ -31,8 +32,9 @@ export function Footer({
   offices: Office[];
   newsletter: PageSection | null;
 }) {
-  const cleanWhatsapp = (settings.whatsapp || "").replace(/[^0-9]/g, "");
-  const cleanViber = (settings.viber || settings.phone || "").replace(/[^0-9]/g, "");
+  const whatsappUrl = whatsappHref(settings.whatsapp);
+  const viberUrl = viberHref(settings.viber || settings.phone);
+  const telegramUrl = telegramHref(settings.telegram);
 
   return (
     <footer className="mt-auto bg-forest-950 text-cream/80">
@@ -74,18 +76,18 @@ export function Footer({
             <a href={settings.linkedin} target="_blank" rel="noopener noreferrer" className="flex h-9 w-9 items-center justify-center rounded-full bg-forest-800 text-cream/80 transition-colors hover:bg-gold-500 hover:text-forest-950" aria-label="LinkedIn">
               <LinkedInIcon className="h-4 w-4" />
             </a>
-            {settings.telegram && (
-              <a href={`https://t.me/${settings.telegram.replace("@", "")}`} target="_blank" rel="noopener noreferrer" className="flex h-9 w-9 items-center justify-center rounded-full bg-forest-800 text-cream/80 transition-colors hover:bg-sky-500 hover:text-white" aria-label="Telegram">
+            {telegramUrl && (
+              <a href={telegramUrl} target="_blank" rel="noopener noreferrer" className="flex h-9 w-9 items-center justify-center rounded-full bg-forest-800 text-cream/80 transition-colors hover:bg-sky-500 hover:text-white" aria-label="Telegram">
                 <TelegramIcon className="h-4 w-4" />
               </a>
             )}
-            {cleanWhatsapp && (
-              <a href={`https://wa.me/${cleanWhatsapp}`} target="_blank" rel="noopener noreferrer" className="flex h-9 w-9 items-center justify-center rounded-full bg-forest-800 text-cream/80 transition-colors hover:bg-emerald-500 hover:text-white" aria-label="WhatsApp">
+            {whatsappUrl && (
+              <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" className="flex h-9 w-9 items-center justify-center rounded-full bg-forest-800 text-cream/80 transition-colors hover:bg-emerald-500 hover:text-white" aria-label="WhatsApp">
                 <WhatsAppIcon className="h-4 w-4" />
               </a>
             )}
-            {cleanViber && (
-              <a href={`viber://chat?number=%2B${cleanViber}`} className="flex h-9 w-9 items-center justify-center rounded-full bg-forest-800 text-cream/80 transition-colors hover:bg-purple-600 hover:text-white" aria-label="Viber">
+            {viberUrl && (
+              <a href={viberUrl} target="_blank" rel="noopener noreferrer" className="flex h-9 w-9 items-center justify-center rounded-full bg-forest-800 text-cream/80 transition-colors hover:bg-purple-600 hover:text-white" aria-label="Viber">
                 <ViberIcon className="h-4 w-4" />
               </a>
             )}
@@ -145,19 +147,19 @@ export function Footer({
                 {settings.phone}
               </a>
             </li>
-            {cleanWhatsapp && (
+            {whatsappUrl && (
               <li>
-                <a href={`https://wa.me/${cleanWhatsapp}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 transition-colors hover:text-emerald-400">
+                <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 transition-colors hover:text-emerald-400">
                   <WhatsAppIcon className="h-4 w-4 text-emerald-400" />
                   <span>WhatsApp: {settings.whatsapp}</span>
                 </a>
               </li>
             )}
-            {cleanViber && (
+            {viberUrl && (
               <li>
-                <a href={`viber://chat?number=%2B${cleanViber}`} className="flex items-center gap-2 transition-colors hover:text-purple-300">
+                <a href={viberUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 transition-colors hover:text-purple-300">
                   <ViberIcon className="h-4 w-4 text-purple-400" />
-                  <span>Viber: {settings.viber}</span>
+                  <span>Viber: {settings.viber || settings.phone}</span>
                 </a>
               </li>
             )}

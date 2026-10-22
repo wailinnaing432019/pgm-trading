@@ -5,19 +5,20 @@ import { MessageSquare, PhoneCall, Send, X } from "lucide-react";
 import { WhatsAppIcon, ViberIcon } from "@/components/ui/trade-icons";
 import { useLanguage } from "@/lib/i18n";
 import type { SiteSettings } from "@/lib/site";
+import { viberHref, whatsappHref } from "@/lib/contact-links";
 
 export function TradeDeskFloating({ settings }: { settings: SiteSettings }) {
   const [isOpen, setIsOpen] = useState(false);
   const { t } = useLanguage();
 
-  const cleanWhatsapp = (settings.whatsapp || "").replace(/[^0-9]/g, "");
-  const cleanViber = (settings.viber || settings.phone || "").replace(/[^0-9]/g, "");
-
-  const whatsappUrl = cleanWhatsapp
-    ? `https://wa.me/${cleanWhatsapp}?text=${encodeURIComponent("Hello Pacific Global Myanmar Trade Desk, I would like to inquire about agricultural export/import products.")}`
-    : `https://wa.me/959123456789`;
-
-  const viberUrl = cleanViber ? `viber://chat?number=%2B${cleanViber}` : `viber://chat?number=%2B959123456789`;
+  const whatsappUrl =
+    whatsappHref(
+      settings.whatsapp,
+      "Hello Pacific Global Myanmar Trade Desk, I would like to inquire about agricultural export/import products."
+    ) ?? "https://wa.me/959123456789";
+  const viberUrl =
+    viberHref(settings.viber || settings.phone) ??
+    "viber://chat/?number=%2B959123456789";
 
   return (
     <aside aria-label="Trade Desk Quick Contact" className="fixed bottom-5 right-5 z-40 flex flex-col items-end gap-2.5">
@@ -55,6 +56,8 @@ export function TradeDeskFloating({ settings }: { settings: SiteSettings }) {
           {/* Viber Direct */}
           <a
             href={viberUrl}
+            target="_blank"
+            rel="noopener noreferrer"
             className="flex items-center gap-3 rounded-xl bg-purple-50 px-3 py-2.5 text-xs font-semibold text-purple-900 transition-colors hover:bg-purple-600 hover:text-white"
           >
             <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-purple-600 text-white">

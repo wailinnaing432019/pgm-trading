@@ -6,7 +6,6 @@ import type { Category, Product } from "@prisma/client";
 import { saveProduct, type AdminActionState } from "@/lib/actions/admin";
 import { ImageUploader } from "@/components/ui/image-uploader";
 import { SpecsEditor } from "@/components/admin/specs-editor";
-import { AutoTranslateFormButton } from "@/components/admin/auto-translate-button";
 import { useToast } from "@/components/admin/toast";
 
 const initialState: AdminActionState = { ok: false };
@@ -92,7 +91,6 @@ export function ProductForm({
       <Section
         title="Basics"
         description="Core product naming, short summary and commercial description."
-        action={<AutoTranslateFormButton />}
       >
         <div>
           <label className="mb-1.5 block text-sm font-medium text-forest-900">Title *</label>
@@ -218,17 +216,6 @@ export function ProductForm({
       >
         <div className="sm:col-span-2">
           <SpecsEditor initial={(product?.specs as Record<string, string> | undefined) ?? {}} />
-        </div>
-      </Section>
-
-      <Section title="SEO" description="Optional — falls back to the title and summary.">
-        <div className="sm:col-span-2">
-          <label className="mb-1.5 block text-sm font-medium text-forest-900">SEO title</label>
-          <input name="seoTitle" defaultValue={product?.seoTitle ?? ""} className="input-admin" />
-        </div>
-        <div className="sm:col-span-2">
-          <label className="mb-1.5 block text-sm font-medium text-forest-900">SEO description</label>
-          <input name="seoDescription" defaultValue={product?.seoDescription ?? ""} className="input-admin" />
         </div>
       </Section>
 

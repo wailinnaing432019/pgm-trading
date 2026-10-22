@@ -3,12 +3,27 @@ import { SectionForm } from "@/components/admin/section-form";
 import { CollectionSection } from "@/components/admin/collection-section";
 import { IconSelect } from "@/components/admin/icon-select";
 import { submitStat, deleteStat, submitSupplyStep, deleteSupplyStep } from "@/lib/actions/admin";
+import { PageEditor } from "@/components/admin/page-editor";
 
 export default async function AdminPagesHome() {
   const [sections, steps, stats] = await Promise.all([getAdminSections("home"), getAdminSupplySteps(), getAllStats()]);
 
+  const outline = [
+    { id: "section-hero", label: "Hero banner", configured: Boolean(sections.hero) },
+    { id: "collection-animated-statistics", label: "Animated statistics", configured: stats.length > 0, count: stats.length },
+    { id: "section-story", label: "Story band", configured: Boolean(sections.story) },
+    { id: "section-storyQuote", label: "Leadership quote", configured: Boolean(sections.storyQuote) },
+    { id: "section-servicesHeading", label: "Services heading", configured: Boolean(sections.servicesHeading) },
+    { id: "section-productHeading", label: "Featured products heading", configured: Boolean(sections.productHeading) },
+    { id: "section-supplyChain", label: "Supply chain heading", configured: Boolean(sections.supplyChain) },
+    { id: "collection-supply-chain-steps", label: "Supply chain steps", configured: steps.length > 0, count: steps.length },
+    { id: "section-newsHeading", label: "News heading", configured: Boolean(sections.newsHeading) },
+    { id: "section-cta", label: "Call-to-action band", configured: Boolean(sections.cta) },
+  ];
+
   return (
-    <div className="max-w-4xl space-y-12">
+    <PageEditor items={outline}>
+      <div className="space-y-12">
       {/* 1. Hero & Introduction */}
       <section className="space-y-6">
         <div className="border-b border-sand-200/80 pb-2">
@@ -140,7 +155,7 @@ export default async function AdminPagesHome() {
                     <label className="mb-1.5 block text-sm font-medium text-forest-900">Step Title</label>
                     <input name="title" defaultValue={item?.title ?? ""} placeholder="e.g. Sourcing & Origin Inspection" className="input-admin" />
                   </div>
-                  <IconSelect value={item?.icon ?? null} />
+                  <IconSelect name="icon" value={item?.icon ?? null} />
                 </div>
                 <div>
                   <label className="mb-1.5 block text-sm font-medium text-forest-900">Description</label>
@@ -179,6 +194,7 @@ export default async function AdminPagesHome() {
           />
         </div>
       </section>
-    </div>
+      </div>
+    </PageEditor>
   );
 }

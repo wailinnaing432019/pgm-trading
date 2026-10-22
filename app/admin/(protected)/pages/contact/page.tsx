@@ -3,6 +3,7 @@ import { SectionForm } from "@/components/admin/section-form";
 import { CollectionSection } from "@/components/admin/collection-section";
 import { submitOffice, deleteOffice } from "@/lib/actions/admin";
 import { TrustComplianceForm } from "@/components/admin/trust-compliance-form";
+import { PageEditor } from "@/components/admin/page-editor";
 
 export default async function AdminPagesContact() {
   const [sections, offices, settings] = await Promise.all([
@@ -11,8 +12,15 @@ export default async function AdminPagesContact() {
     getSiteSettings(),
   ]);
 
+  const outline = [
+    { id: "section-hero", label: "Hero banner", configured: Boolean(sections.hero) },
+    { id: "collection-offices-branches", label: "Offices & branches", configured: offices.length > 0, count: offices.length },
+    { id: "section-trust", label: "Trust & compliance", configured: Boolean(sections.trust) },
+  ];
+
   return (
-    <div className="max-w-4xl space-y-12">
+    <PageEditor items={outline}>
+      <div className="space-y-12">
       {/* 1. Hero & Inquiries Header */}
       <section className="space-y-6">
         <div className="border-b border-sand-200/80 pb-2">
@@ -92,6 +100,7 @@ export default async function AdminPagesContact() {
           defaultExportLicense={settings.exportLicense}
         />
       </section>
-    </div>
+      </div>
+    </PageEditor>
   );
 }

@@ -8,12 +8,14 @@ import { LatestNews } from "@/components/home/latest-news";
 import { CtaBand } from "@/components/home/cta-band";
 import { getHomeData, getPageContent } from "@/lib/queries";
 import { AssetImage } from "@/components/ui/asset-image";
+import { pageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: "Agricultural Import, Export & Distribution — Myanmar",
+export const metadata: Metadata = pageMetadata({
+  title: "PGM Trading — Agricultural Import, Export & Distribution",
   description:
     "Pacific Global Myanmar: agricultural import, export, trading, cold-chain distribution and contract farming from Myanmar to global markets.",
-};
+  path: "/",
+});
 
 export default async function HomePage() {
   const [data, content] = await Promise.all([getHomeData(), getPageContent("home")]);

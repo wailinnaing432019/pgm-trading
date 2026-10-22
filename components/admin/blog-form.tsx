@@ -5,7 +5,6 @@ import { Loader2, Save } from "lucide-react";
 import type { Blog } from "@prisma/client";
 import { saveBlog, type AdminActionState } from "@/lib/actions/admin";
 import { ImageUploader } from "@/components/ui/image-uploader";
-import { AutoTranslateFormButton } from "@/components/admin/auto-translate-button";
 import { useToast } from "@/components/admin/toast";
 
 const initialState: AdminActionState = { ok: false };
@@ -24,9 +23,8 @@ export function BlogForm({ post }: { post?: Blog }) {
 
   return (
     <form action={action} className="grid gap-5">
-      <div className="flex items-center justify-between border-b border-sand-200/80 pb-3">
+      <div className="border-b border-sand-200/80 pb-3">
         <span className="text-xs font-semibold text-forest-700/70">Article Content</span>
-        <AutoTranslateFormButton />
       </div>
       <input type="hidden" name="id" value={post?.id} />
 

@@ -7,12 +7,14 @@ import { SupplyChain } from "@/components/home/supply-chain";
 import { CtaBand } from "@/components/home/cta-band";
 import { getPageContent, getServices, getChecklist } from "@/lib/queries";
 import { getLucideIcon } from "@/lib/icons";
+import { pageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
   title: "Services — Import, Export, Distribution & Logistics",
   description:
     "Import & export capabilities, warehousing, cold-chain distribution, customs clearance and contract farming from Pacific Global Myanmar.",
-};
+  path: "/services",
+});
 
 export default async function ServicesPage() {
   const [content, services, capabilities] = await Promise.all([

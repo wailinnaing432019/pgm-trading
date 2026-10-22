@@ -14,19 +14,41 @@ import {
   Settings,
   Tags,
   Wheat,
+  type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { logoutAdmin } from "@/lib/actions/admin";
 
-const nav = [
+type NavItem = {
+  label: string;
+  href: string;
+  icon: LucideIcon;
+  /**
+   * Path prefix that keeps this item highlighted on sibling/nested routes.
+   * Pages lives at /admin/pages/home but must stay active on /admin/pages/about, etc.
+   */
+  match?: string;
+};
+
+const nav: NavItem[] = [
   { label: "Overview", href: "/admin", icon: LayoutDashboard },
   { label: "Products", href: "/admin/products", icon: Package },
   { label: "Categories", href: "/admin/categories", icon: FolderTree },
   { label: "Trade Types", href: "/admin/trade-types", icon: Tags },
-  { label: "Pages & Content", href: "/admin/pages/home", icon: Settings },
+  { label: "Pages & Content", href: "/admin/pages/home", icon: Settings, match: "/admin/pages" },
   { label: "News & Media", href: "/admin/news", icon: Newspaper },
   { label: "Inquiries", href: "/admin/inquiries", icon: Inbox },
-] as const;
+];
+
+function isNavActive(item: NavItem, pathname: string) {
+  if (item.href === "/admin") return pathname === "/admin";
+  const prefix = item.match ?? item.href;
+  return (
+    pathname === item.href ||
+    pathname === prefix ||
+    pathname.startsWith(`${prefix}/`)
+  );
+}
 
 export function AdminShell({
   children,
@@ -63,7 +85,7 @@ export function AdminShell({
         <nav className="mt-4 flex-1 space-y-1 px-3" aria-label="Admin">
           {nav.map((item) => {
             const Icon = item.icon;
-            const active = item.href === "/admin" ? pathname === "/admin" : pathname.startsWith(item.href);
+            const active = isNavActive(item, pathname);
             return (
               <Link
                 key={item.href}
@@ -126,7 +148,7 @@ export function AdminShell({
           <nav className="flex gap-1 overflow-x-auto px-3 pb-3 md:hidden" aria-label="Admin mobile">
             {nav.map((item) => {
               const Icon = item.icon;
-              const active = item.href === "/admin" ? pathname === "/admin" : pathname.startsWith(item.href);
+              const active = isNavActive(item, pathname);
               return (
                 <Link
                   key={item.href}

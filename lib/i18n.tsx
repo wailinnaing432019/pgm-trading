@@ -258,6 +258,12 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     document.cookie = `pgm_lang=${next}; path=/; max-age=31536000`;
   };
 
+  // Keep the document language in sync so screen readers, browsers and search
+  // engines pick the right language (and Myanmar fonts) for the page.
+  useEffect(() => {
+    document.documentElement.lang = lang;
+  }, [lang]);
+
   return (
     <LanguageContext.Provider value={{ lang, setLang, t: dictionaries[lang] }}>
       {children}

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { getBlogById } from "@/lib/queries";
 import { formatDate } from "@/lib/utils";
+import { pageMetadata } from "@/lib/seo";
 
 export async function generateMetadata({
   params,
@@ -15,8 +16,19 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { id } = await params;
   const post = await getBlogById(id);
-  if (!post) return { title: "Article not found" };
-  return { title: post.title, description: post.excerpt };
+  if (!post) {
+    return { title: "Article not found", robots: { index: false, follow: true } };
+  }
+
+  return pageMetadata({
+    title: post.title,
+    description: post.excerpt,
+    path: `/news/${post.id}`,
+    image: post.coverImage,
+    type: "article",
+    publishedTime: (post.publishedAt ?? post.createdAt).toISOString(),
+    modifiedTime: post.updatedAt.toISOString(),
+  });
 }
 
 export default async function NewsDetailPage({

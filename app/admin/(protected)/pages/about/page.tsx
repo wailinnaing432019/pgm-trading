@@ -10,6 +10,7 @@ import {
   submitChecklistItem,
   deleteChecklistItem,
 } from "@/lib/actions/admin";
+import { PageEditor } from "@/components/admin/page-editor";
 
 export default async function AdminPagesAbout() {
   const [sections, values, milestones, certifications] = await Promise.all([
@@ -19,8 +20,21 @@ export default async function AdminPagesAbout() {
     getAdminChecklist("certifications"),
   ]);
 
+  const outline = [
+    { id: "section-hero", label: "Hero banner", configured: Boolean(sections.hero) },
+    { id: "section-story", label: "Our story", configured: Boolean(sections.story) },
+    { id: "section-mission", label: "Mission statement", configured: Boolean(sections.mission) },
+    { id: "section-vision", label: "Long-term vision", configured: Boolean(sections.vision) },
+    { id: "collection-core-values", label: "Core values", configured: values.length > 0, count: values.length },
+    { id: "section-milestonesHeading", label: "Timeline heading", configured: Boolean(sections.milestonesHeading) },
+    { id: "collection-company-milestones", label: "Company milestones", configured: milestones.length > 0, count: milestones.length },
+    { id: "section-certificationsHeading", label: "Certifications heading", configured: Boolean(sections.certificationsHeading) },
+    { id: "collection-certifications-compliance-badges", label: "Certifications & badges", configured: certifications.length > 0, count: certifications.length },
+  ];
+
   return (
-    <div className="max-w-4xl space-y-12">
+    <PageEditor items={outline}>
+      <div className="space-y-12">
       {/* 1. Hero & Mission Narrative */}
       <section className="space-y-6">
         <div className="border-b border-sand-200/80 pb-2">
@@ -90,7 +104,7 @@ export default async function AdminPagesAbout() {
                   <label className="mb-1.5 block text-sm font-medium text-forest-900">Value Title</label>
                   <input name="title" defaultValue={item?.title ?? ""} placeholder="e.g. Integrity & Transparency" className="input-admin" />
                 </div>
-                <IconSelect value={item?.icon ?? null} />
+                <IconSelect name="icon" value={item?.icon ?? null} />
               </div>
               <div>
                 <label className="mb-1.5 block text-sm font-medium text-forest-900">Description</label>
@@ -181,6 +195,7 @@ export default async function AdminPagesAbout() {
           />
         </div>
       </section>
-    </div>
+      </div>
+    </PageEditor>
   );
 }

@@ -132,8 +132,6 @@ export async function saveProduct(_prev: AdminActionState | null, formData: Form
     isFeatured: formData.get("isFeatured") === "on",
     images: parseJsonField(formData.get("images"), []),
     specs: parseJsonField(formData.get("specs"), {}),
-    seoTitle: formData.get("seoTitle") || undefined,
-    seoDescription: formData.get("seoDescription") || undefined,
   });
 
   if (!parsed.success) {
@@ -169,8 +167,6 @@ export async function saveProduct(_prev: AdminActionState | null, formData: Form
     unit: nullableTrimmed(rest.unit),
     price: rest.price ?? null,
     availability: rest.availability ?? null,
-    seoTitle: nullableTrimmed(rest.seoTitle),
-    seoDescription: nullableTrimmed(rest.seoDescription),
     specs: rest.specs as Prisma.InputJsonValue,
     images: rest.images,
   };
@@ -236,7 +232,6 @@ export async function saveCategory(_prev: AdminActionState | null, formData: For
     name: formData.get("name"),
     slug: formData.get("slug"),
     description: formData.get("description"),
-    image: formData.get("image"),
     position: formData.get("position") || 0,
     isActive: formData.get("isActive") === "on",
   });
@@ -250,7 +245,6 @@ export async function saveCategory(_prev: AdminActionState | null, formData: For
   const data = {
     ...rawData,
     description: nullableTrimmed(rawData.description),
-    image: nullableTrimmed(rawData.image),
   };
 
   try {
@@ -304,6 +298,37 @@ export async function deleteCategory(formData: FormData) {
 
 export async function submitCategory(formData: FormData) {
   await saveCategory(null, formData);
+}
+
+export async function toggleCategoryActive(formData: FormData) {
+  await requireAdmin();
+  const id = formData.get("id");
+  if (typeof id !== "string") return;
+
+  try {
+    const category = await prisma.category.findUnique({
+      where: { id },
+      select: { isActive: true, name: true },
+    });
+    if (!category) return;
+
+    const isActive = !category.isActive;
+    await prisma.category.update({ where: { id }, data: { isActive } });
+    await flashAdminToast({
+      type: "success",
+      text: isActive
+        ? `“${category.name}” is now visible on the site.`
+        : `“${category.name}” is now hidden from the site.`,
+    });
+  } catch (error) {
+    console.error("[toggleCategoryActive]", error);
+    await flashAdminToast({
+      type: "error",
+      text: "Could not update category visibility. Please try again.",
+    });
+  }
+
+  revalidateAdminContent();
 }
 
 export async function saveTradeType(_prev: AdminActionState | null, formData: FormData) {

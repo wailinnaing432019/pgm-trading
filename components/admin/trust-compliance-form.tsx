@@ -13,8 +13,9 @@ import {
 import type { PageSection } from "@prisma/client";
 import { submitPageSection } from "@/lib/actions/admin";
 import { SubmitButton } from "@/components/admin/submit-button";
-import { iconKeys, getLucideIcon } from "@/lib/icons";
+import { IconSelect } from "@/components/admin/icon-select";
 import { translateTradeTerm } from "@/lib/i18n";
+import { usePageEditor } from "@/components/admin/page-editor";
 import { cn } from "@/lib/utils";
 
 export interface CredentialCardItem {
@@ -80,7 +81,13 @@ export function TrustComplianceForm({
   defaultRegNumber?: string;
   defaultExportLicense?: string;
 }) {
-  const [isExpanded, setIsExpanded] = useState(true);
+  const editor = usePageEditor();
+  const [localExpanded, setLocalExpanded] = useState(false);
+  const isExpanded = editor ? editor.openKey === "trust" : localExpanded;
+  const toggleExpanded = () => {
+    if (editor) editor.toggleSection("trust", "section-trust");
+    else setLocalExpanded((value) => !value);
+  };
 
   // Controlled section texts
   const [subtitle, setSubtitle] = useState(section?.subtitle ?? "Trust & Compliance");
@@ -173,11 +180,22 @@ export function TrustComplianceForm({
   const metaJson = JSON.stringify({ items: cards });
 
   return (
-    <div className="card-surface overflow-hidden border border-sand-200/80 shadow-card">
+    <div
+      id="section-trust"
+      data-section-key="trust"
+      data-section-label="Trust & compliance"
+      className="card-surface scroll-mt-24 border border-sand-200/80 shadow-card"
+    >
       {/* Header bar */}
-      <div
-        onClick={() => setIsExpanded((p) => !p)}
-        className="flex cursor-pointer select-none items-center justify-between gap-4 p-5 transition-colors hover:bg-forest-50/40"
+      <button
+        type="button"
+        onClick={toggleExpanded}
+        aria-expanded={isExpanded}
+        aria-controls="section-trust-panel"
+        className={cn(
+          "flex w-full items-center justify-between gap-4 p-5 text-left transition-colors hover:bg-forest-50/40",
+          isExpanded ? "rounded-t-2xl" : "rounded-2xl"
+        )}
       >
         <div className="flex min-w-0 items-center gap-3.5">
           <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-forest-100 text-forest-700">
@@ -204,19 +222,18 @@ export function TrustComplianceForm({
           </div>
         </div>
 
-        <button
-          type="button"
-          className="flex h-8 w-8 items-center justify-center rounded-full text-forest-700/60 transition-transform duration-200 hover:bg-sand-100 hover:text-forest-900"
-          aria-label={isExpanded ? "Collapse section" : "Expand section"}
-        >
-          <ChevronDown
-            className={cn("h-4 w-4 transition-transform duration-200", isExpanded && "rotate-180")}
-          />
-        </button>
-      </div>
+        <ChevronDown
+          className={cn("h-4 w-4 text-forest-700/60 transition-transform duration-200", isExpanded && "rotate-180")}
+          aria-hidden
+        />
+      </button>
 
       {isExpanded && (
-        <form action={submitPageSection} className="border-t border-sand-200/80 p-5 pt-6 sm:p-6 grid gap-6">
+        <form
+          id="section-trust-panel"
+          action={submitPageSection}
+          className="grid gap-6 border-t border-sand-200/80 p-5 pt-6 sm:p-6"
+        >
           <input type="hidden" name="id" value={section?.id ?? ""} />
           <input type="hidden" name="page" value="contact" />
           <input type="hidden" name="key" value="trust" />
@@ -346,29 +363,18 @@ export function TrustComplianceForm({
 
             <div className="grid gap-3 sm:grid-cols-2">
               {cards.map((card, idx) => {
-                const IconComponent = getLucideIcon(card.icon);
                 return (
                   <div
                     key={idx}
                     className="relative flex flex-col justify-between rounded-xl border border-sand-200 bg-sand-50/50 p-4 transition-all hover:border-forest-400/50"
                   >
                     <div className="flex items-center justify-between gap-2 pb-2 mb-2 border-b border-sand-200/60">
-                      <div className="flex items-center gap-2">
-                        <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-forest-100 text-forest-800">
-                          <IconComponent className="h-4 w-4" />
-                        </span>
-                        <select
-                          value={card.icon}
-                          onChange={(e) => updateCard(idx, { icon: e.target.value })}
-                          className="h-8 rounded-lg border border-sand-300 bg-white px-2 text-xs font-medium text-forest-900"
-                        >
-                          {iconKeys.map((key) => (
-                            <option key={key} value={key}>
-                              {key}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
+                      <IconSelect
+                        compact
+                        label="Card icon"
+                        value={card.icon}
+                        onChange={(key) => updateCard(idx, { icon: key })}
+                      />
 
                       <button
                         type="button"

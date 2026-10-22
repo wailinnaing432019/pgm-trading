@@ -2,7 +2,6 @@ import { ListOrdered, Plus, Trash2, Sparkles } from "lucide-react";
 import { DangerSubmitButton } from "@/components/ui/danger-submit-button";
 import { SubmitButton } from "@/components/admin/submit-button";
 import { CollectionItemCard, AddEntryDrawer } from "@/components/admin/collection-client-wrappers";
-import { AutoTranslateFormButton } from "@/components/admin/auto-translate-button";
 
 type Item = { id: string; position?: number; title?: string; label?: string; name?: string };
 
@@ -52,9 +51,6 @@ export function CollectionSection<T extends Item>({
         {/* Add Entry Toggle and Drawer */}
         <AddEntryDrawer addLabel={addLabel}>
           <form action={saveAction} className="grid gap-4">
-            <div className="flex items-center justify-end">
-              <AutoTranslateFormButton />
-            </div>
             <input type="hidden" name="position" value={String(items.length)} />
             {renderItem(null, items.length)}
 
@@ -90,19 +86,17 @@ export function CollectionSection<T extends Item>({
           const itemPosition = item.position ?? index;
           const deleteFormId = `delete-collection-${item.id}`;
           const itemTitle = item.title || item.label || item.name || `Entry #${index + 1}`;
-          const defaultExpanded = items.length <= 4 || index < 2;
 
           return (
             <CollectionItemCard
               key={item.id}
               index={index}
+              itemId={String(item.id)}
               itemTitle={itemTitle}
-              defaultExpanded={defaultExpanded}
             >
               <form action={saveAction} className="grid gap-4">
-                <div className="flex items-center justify-between border-b border-sand-200/60 pb-2">
+                <div className="border-b border-sand-200/60 pb-2">
                   <span className="text-xs font-semibold text-forest-700/70">Fields</span>
-                  <AutoTranslateFormButton />
                 </div>
                 <input type="hidden" name="id" value={item.id} />
                 <input type="hidden" name="position" value={String(itemPosition)} />

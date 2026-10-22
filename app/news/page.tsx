@@ -5,12 +5,14 @@ import { AssetImage } from "@/components/ui/asset-image";
 import { Badge } from "@/components/ui/badge";
 import { getBlogs } from "@/lib/queries";
 import { formatDate } from "@/lib/utils";
+import { pageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
   title: "News, Trade Updates & Market Insights",
   description:
     "Export market movements, harvest outlooks and company announcements from Pacific Global Myanmar.",
-};
+  path: "/news",
+});
 
 export default async function NewsPage() {
   const { items, total } = await getBlogs(30);

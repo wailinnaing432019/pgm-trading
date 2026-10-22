@@ -4,12 +4,14 @@ import { InquiryForm } from "@/components/contact/inquiry-form";
 import { AssetImage } from "@/components/ui/asset-image";
 import { getPageContent, getOffices, getSectionForDisplay, getSiteSettings } from "@/lib/queries";
 import { TradeCredentials } from "@/components/layout/trade-credentials";
+import { pageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
   title: "Contact & Trade Enquiries",
   description:
     "Reach Pacific Global Myanmar for export pricing, import sourcing, distribution and logistics enquiries.",
-};
+  path: "/contact",
+});
 
 export default async function ContactPage({
   searchParams,

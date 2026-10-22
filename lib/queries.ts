@@ -218,16 +218,35 @@ export const getCategories = cache(async () => {
   );
 });
 
-export const getAdminCategories = cache(async () => {
-  return safe(
-    () =>
-      prisma.category.findMany({
-        orderBy: [{ position: "asc" }, { name: "asc" }],
-        include: { _count: { select: { products: true } } },
-      }),
-    []
-  );
-});
+export const getAdminCategories = cache(
+  async (filters: { q?: string; status?: "visible" | "hidden" } = {}) => {
+    const q = filters.q?.trim();
+    return safe(
+      () =>
+        prisma.category.findMany({
+          where: {
+            ...(q
+              ? {
+                  OR: [
+                    { name: { contains: q, mode: "insensitive" } },
+                    { slug: { contains: q, mode: "insensitive" } },
+                    { description: { contains: q, mode: "insensitive" } },
+                  ],
+                }
+              : {}),
+            ...(filters.status === "visible"
+              ? { isActive: true }
+              : filters.status === "hidden"
+                ? { isActive: false }
+                : {}),
+          },
+          orderBy: [{ position: "asc" }, { name: "asc" }],
+          include: { _count: { select: { products: true } } },
+        }),
+      []
+    );
+  }
+);
 
 export const getTradeTypes = cache(async () => {
   return safe(

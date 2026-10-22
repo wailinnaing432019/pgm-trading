@@ -3,6 +3,7 @@ import { SectionForm } from "@/components/admin/section-form";
 import { CollectionSection } from "@/components/admin/collection-section";
 import { IconSelect } from "@/components/admin/icon-select";
 import { submitService, submitChecklistItem, deleteChecklistItem, deleteService } from "@/lib/actions/admin";
+import { PageEditor } from "@/components/admin/page-editor";
 
 export default async function AdminPagesServices() {
   const [sections, services, capabilities] = await Promise.all([
@@ -11,8 +12,18 @@ export default async function AdminPagesServices() {
     getAdminChecklist("capabilities"),
   ]);
 
+  const outline = [
+    { id: "section-hero", label: "Hero banner", configured: Boolean(sections.hero) },
+    { id: "section-servicesHeading", label: "Services grid heading", configured: Boolean(sections.servicesHeading) },
+    { id: "collection-services-catalog", label: "Services catalog", configured: services.length > 0, count: services.length },
+    { id: "section-capabilitiesHeading", label: "Capabilities heading", configured: Boolean(sections.capabilitiesHeading) },
+    { id: "collection-capabilities-checklist", label: "Capabilities checklist", configured: capabilities.length > 0, count: capabilities.length },
+    { id: "section-quote", label: "Service highlight quote", configured: Boolean(sections.quote) },
+  ];
+
   return (
-    <div className="max-w-4xl space-y-12">
+    <PageEditor items={outline}>
+      <div className="space-y-12">
       {/* 1. Hero & Header */}
       <section className="space-y-6">
         <div className="border-b border-sand-200/80 pb-2">
@@ -62,7 +73,7 @@ export default async function AdminPagesServices() {
                   <label className="mb-1.5 block text-sm font-medium text-forest-900">Service Title</label>
                   <input name="title" defaultValue={item?.title ?? ""} placeholder="e.g. Cold Chain Storage & Warehousing" className="input-admin" />
                 </div>
-                <IconSelect value={item?.icon ?? null} />
+                <IconSelect name="icon" value={item?.icon ?? null} />
               </div>
               <div>
                 <label className="mb-1.5 block text-sm font-medium text-forest-900">Service Description</label>
@@ -116,6 +127,7 @@ export default async function AdminPagesServices() {
           />
         </div>
       </section>
-    </div>
+      </div>
+    </PageEditor>
   );
 }

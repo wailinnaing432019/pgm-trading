@@ -5,12 +5,14 @@ import { AssetImage } from "@/components/ui/asset-image";
 import { getPageContent, getMilestones, getValues, getChecklist, getSiteSettings } from "@/lib/queries";
 import { getLucideIcon } from "@/lib/icons";
 import { TradeCredentials } from "@/components/layout/trade-credentials";
+import { pageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
   title: "About Us — Our Story, Vision & Values",
   description:
     "Pacific Global Myanmar: our company story, mission, vision, core values and certification milestones.",
-};
+  path: "/about",
+});
 
 export default async function AboutPage() {
   const [content, milestones, values, certifications, settings] = await Promise.all([

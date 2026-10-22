@@ -18,6 +18,8 @@ import { ProductCard } from "@/components/products/product-card";
 import { WhatsAppIcon, ViberIcon } from "@/components/ui/trade-icons";
 import { getProductById, getProducts, getSiteSettings } from "@/lib/queries";
 import { formatSpecs } from "@/lib/utils";
+import { pageMetadata } from "@/lib/seo";
+import { viberHref, whatsappHref } from "@/lib/contact-links";
 
 export async function generateMetadata({
   params,
@@ -26,13 +28,16 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { id } = await params;
   const product = await getProductById(id);
-  if (!product) return { title: "Product not found" };
+  if (!product) {
+    return { title: "Product not found", robots: { index: false, follow: true } };
+  }
 
-  return {
-    title: product.seoTitle ?? product.title,
-    description: product.seoDescription ?? product.summary,
-    openGraph: { title: product.title, description: product.summary },
-  };
+  return pageMetadata({
+    title: product.title,
+    description: product.summary,
+    path: `/products/${product.id}`,
+    image: product.images[0],
+  });
 }
 
 export default async function ProductDetailPage({
@@ -47,12 +52,16 @@ export default async function ProductDetailPage({
   const related = await getProducts({ category: product.category?.slug, limit: 4 });
   const specs = formatSpecs(product.specs as Record<string, unknown>);
   const tradeLabels = product.tradeTypes.map((t) => t.tradeType.label);
-  const cleanWhatsapp = (settings.whatsapp || "").replace(/[^0-9]/g, "");
-  const cleanViber = (settings.viber || settings.phone || "").replace(/[^0-9]/g, "");
-  const whatsappUrl = cleanWhatsapp
-    ? `https://wa.me/${cleanWhatsapp}?text=${encodeURIComponent(`Hello PGM Trade Desk, I would like to request an official quote for ${product.title} (Origin: ${product.origin ?? "Myanmar"}, Unit: ${product.unit ?? "MT"}).`)}`
-    : `https://wa.me/959123456789`;
-  const viberUrl = cleanViber ? `viber://chat?number=%2B${cleanViber}` : `viber://chat?number=%2B959123456789`;
+  const whatsappUrl =
+    whatsappHref(
+      settings.whatsapp,
+      `Hello PGM Trade Desk, I would like to request an official quote for ${
+        product.title
+      } (Origin: ${product.origin ?? "Myanmar"}, Unit: ${product.unit ?? "MT"}).`
+    ) ?? "https://wa.me/959123456789";
+  const viberUrl =
+    viberHref(settings.viber || settings.phone) ??
+    "viber://chat/?number=%2B959123456789";
   const rfqLink = `/contact?tab=rfq&subject=${encodeURIComponent(`${product.title} RFQ`)}`;
 
   return (
@@ -146,6 +155,8 @@ export default async function ProductDetailPage({
                 </a>
                 <a
                   href={viberUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="inline-flex items-center gap-2 rounded-xl bg-purple-600 px-4 py-2.5 text-xs font-semibold text-white shadow-sm transition-all hover:bg-purple-700 hover:shadow"
                 >
                   <ViberIcon className="h-4 w-4" />

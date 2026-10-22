@@ -8,8 +8,6 @@ import {
   Mail,
   Phone,
   MessageCircle,
-  Eye,
-  Wheat,
   Sliders,
   Send,
 } from "lucide-react";
@@ -17,11 +15,10 @@ import type { SiteSettings } from "@/lib/site";
 import { submitSiteSettings } from "@/lib/actions/admin";
 import { ImageUploader } from "@/components/ui/image-uploader";
 import { SubmitButton } from "@/components/admin/submit-button";
-import { AutoTranslateFormButton } from "@/components/admin/auto-translate-button";
 import { cn } from "@/lib/utils";
 
 export function BrandSettingsForm({ settings }: { settings: SiteSettings }) {
-  const [activeTab, setActiveTab] = useState<"identity" | "seo" | "contact">("identity");
+  const [activeTab, setActiveTab] = useState<"identity" | "site" | "contact">("identity");
   const [shortName, setShortName] = useState(settings.shortName);
   const [brandTag, setBrandTag] = useState(settings.brandTag);
   const [companyName, setCompanyName] = useState(settings.companyName);
@@ -44,12 +41,11 @@ export function BrandSettingsForm({ settings }: { settings: SiteSettings }) {
               Global Brand & Site Configuration
             </h2>
             <p className="mt-0.5 text-xs text-forest-700/70 sm:text-sm">
-              Controls branding, copyright, contact lines, and search metadata across the entire website.
+              Controls branding, copyright, contact details and shared footer content.
             </p>
           </div>
 
           <div className="flex items-center gap-3">
-            <AutoTranslateFormButton />
             <SubmitButton
               variant="primary"
               size="sm"
@@ -76,15 +72,15 @@ export function BrandSettingsForm({ settings }: { settings: SiteSettings }) {
           </button>
           <button
             type="button"
-            onClick={() => setActiveTab("seo")}
+            onClick={() => setActiveTab("site")}
             className={cn(
               "inline-flex items-center gap-2 rounded-lg px-3.5 py-1.5 text-xs font-semibold transition-colors",
-              activeTab === "seo"
+              activeTab === "site"
                 ? "bg-forest-700 text-cream"
                 : "bg-white text-forest-800 ring-1 ring-sand-200 hover:bg-forest-50"
             )}
           >
-            <Globe className="h-3.5 w-3.5" aria-hidden /> Site & SEO
+            <Globe className="h-3.5 w-3.5" aria-hidden /> Site
           </button>
           <button
             type="button"
@@ -203,51 +199,10 @@ export function BrandSettingsForm({ settings }: { settings: SiteSettings }) {
               <p className="mt-1 text-xs text-forest-700/60">Ministry of Commerce registered trading license number</p>
             </div>
           </div>
-
-          {/* Live Header Logo Preview */}
-          <div className="mt-2 rounded-xl border border-sand-200 bg-sand-50/60 p-4">
-            <div className="mb-2 flex items-center justify-between text-xs font-semibold text-forest-800">
-              <span className="flex items-center gap-1.5">
-                <Eye className="h-3.5 w-3.5 text-forest-600" aria-hidden /> Live Header Logo Preview
-              </span>
-              <span className="text-[11px] font-normal text-forest-700/60">How visitors see it</span>
-            </div>
-            <div className="flex flex-wrap items-center gap-6">
-              {/* Light background preview */}
-              <div className="flex items-center gap-2.5 rounded-lg border border-sand-200 bg-cream px-4 py-3">
-                <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-forest-800 text-gold-300">
-                  <Wheat className="h-5 w-5" aria-hidden />
-                </span>
-                <span className="leading-tight">
-                  <span className="block font-serif text-sm font-bold text-forest-950">
-                    {shortName || "PGM"}
-                  </span>
-                  <span className="block text-[10px] uppercase tracking-wider text-forest-700/70">
-                    {brandTag || "Trade & Distribution"}
-                  </span>
-                </span>
-              </div>
-
-              {/* Dark background preview */}
-              <div className="flex items-center gap-2.5 rounded-lg bg-forest-950 px-4 py-3 text-cream">
-                <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-forest-800 text-gold-300">
-                  <Wheat className="h-5 w-5" aria-hidden />
-                </span>
-                <span className="leading-tight">
-                  <span className="block font-serif text-sm font-bold text-cream">
-                    {shortName || "PGM"}
-                  </span>
-                  <span className="block text-[10px] uppercase tracking-wider text-cream/60">
-                    {brandTag || "Trade & Distribution"}
-                  </span>
-                </span>
-              </div>
-            </div>
-          </div>
         </div>
 
-        {/* Tab 2: Site & SEO */}
-        <div className={cn("grid gap-5", activeTab !== "seo" && "hidden")}>
+        {/* Tab 2: Site */}
+        <div className={cn("grid gap-5", activeTab !== "site" && "hidden")}>
           <div>
             <label className="mb-1.5 block text-sm font-medium text-forest-900">
               Site URL
@@ -258,13 +213,13 @@ export function BrandSettingsForm({ settings }: { settings: SiteSettings }) {
               placeholder="https://pgm-trading.com"
               className="input-admin"
             />
-            <p className="mt-1 text-xs text-forest-700/60">Canonical website URL used for metadata, Open Graph and sitemaps</p>
+            <p className="mt-1 text-xs text-forest-700/60">Used for canonical links and social sharing previews</p>
           </div>
 
           <div>
             <div className="flex items-center justify-between">
               <label className="mb-1.5 block text-sm font-medium text-forest-900">
-                Site Description (Footer & SEO)
+                Site description (footer)
               </label>
               <span className="text-xs text-forest-700/50">{desc.length} characters</span>
             </div>
@@ -276,7 +231,7 @@ export function BrandSettingsForm({ settings }: { settings: SiteSettings }) {
               className="input-admin resize-y"
             />
             <p className="mt-1 text-xs text-forest-700/60">
-              Recommended: 120–160 characters for optimal search engine display
+              Recommended: 120–160 characters
             </p>
           </div>
         </div>

@@ -10,14 +10,15 @@ import { Button } from "@/components/ui/button";
 import { SiteLogo } from "@/components/layout/site-logo";
 import { useLanguage } from "@/lib/i18n";
 import { WhatsAppIcon, ViberIcon } from "@/components/ui/trade-icons";
+import { viberHref, whatsappHref } from "@/lib/contact-links";
 
 export function Header({ settings }: { settings: SiteSettings }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const { lang, setLang, t } = useLanguage();
 
-  const cleanWhatsapp = (settings.whatsapp || "").replace(/[^0-9]/g, "");
-  const cleanViber = (settings.viber || settings.phone || "").replace(/[^0-9]/g, "");
+  const whatsappUrl = whatsappHref(settings.whatsapp);
+  const viberUrl = viberHref(settings.viber || settings.phone);
 
   const navLabels: Record<string, string> = {
     "/": t.nav.home,
@@ -44,9 +45,9 @@ export function Header({ settings }: { settings: SiteSettings }) {
           </p>
           <div className="flex items-center gap-5">
             {/* WhatsApp direct */}
-            {cleanWhatsapp && (
+            {whatsappUrl && (
               <a
-                href={`https://wa.me/${cleanWhatsapp}`}
+                href={whatsappUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-1.5 transition-colors hover:text-emerald-400"
@@ -58,9 +59,11 @@ export function Header({ settings }: { settings: SiteSettings }) {
             )}
 
             {/* Viber direct */}
-            {cleanViber && (
+            {viberUrl && (
               <a
-                href={`viber://chat?number=%2B${cleanViber}`}
+                href={viberUrl}
+                target="_blank"
+                rel="noopener noreferrer"
                 className="flex items-center gap-1.5 transition-colors hover:text-purple-300"
                 title="Viber Trade Desk"
               >
@@ -197,22 +200,28 @@ export function Header({ settings }: { settings: SiteSettings }) {
               </Button>
 
               <div className="grid grid-cols-2 gap-2 pt-2">
-                <a
-                  href={`https://wa.me/${cleanWhatsapp}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center justify-center gap-2 rounded-xl bg-emerald-600 py-2.5 text-xs font-semibold text-white"
-                >
-                  <WhatsAppIcon className="h-4 w-4" />
-                  <span>WhatsApp</span>
-                </a>
-                <a
-                  href={`viber://chat?number=%2B${cleanViber}`}
-                  className="flex items-center justify-center gap-2 rounded-xl bg-purple-600 py-2.5 text-xs font-semibold text-white"
-                >
-                  <ViberIcon className="h-4 w-4" />
-                  <span>Viber</span>
-                </a>
+                {whatsappUrl && (
+                  <a
+                    href={whatsappUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-center gap-2 rounded-xl bg-emerald-600 py-2.5 text-xs font-semibold text-white"
+                  >
+                    <WhatsAppIcon className="h-4 w-4" />
+                    <span>WhatsApp</span>
+                  </a>
+                )}
+                {viberUrl && (
+                  <a
+                    href={viberUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-center gap-2 rounded-xl bg-purple-600 py-2.5 text-xs font-semibold text-white"
+                  >
+                    <ViberIcon className="h-4 w-4" />
+                    <span>Viber</span>
+                  </a>
+                )}
               </div>
             </div>
           </nav>

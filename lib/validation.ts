@@ -35,8 +35,6 @@ export const productSchema = z.object({
   isFeatured: z.boolean().optional(),
   images: z.array(z.string()).default([]),
   specs: z.record(z.string(), z.string()).default({}),
-  seoTitle: z.string().trim().max(160).optional().or(z.literal("")),
-  seoDescription: z.string().trim().max(300).optional().or(z.literal("")),
 });
 
 export const categorySchema = z.object({
@@ -44,7 +42,6 @@ export const categorySchema = z.object({
   name: z.string().trim().min(2).max(120),
   slug: z.string().trim().min(2).max(140),
   description: z.string().trim().max(500).optional().or(z.literal("")),
-  image: z.string().trim().max(500).optional().or(z.literal("")),
   position: z.coerce.number().int().default(0),
   isActive: z.boolean().default(true),
 });
