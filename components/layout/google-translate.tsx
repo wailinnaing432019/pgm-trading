@@ -88,6 +88,44 @@ export function GoogleTranslate() {
     };
   }, [lang, pathname]);
 
+  // 4. Strip the grey "original text" highlight Google Translate paints over
+  // translated text on hover. The widget often sets inline styles, which can
+  // outrank stylesheet rules, so clear them as soon as the class appears.
+  useEffect(() => {
+    const clearHighlight = (element: Element) => {
+      if (!(element instanceof HTMLElement) || !element.classList.contains("goog-text-highlight")) {
+        return;
+      }
+
+      const targets: HTMLElement[] = [element];
+      element.querySelectorAll<HTMLElement>("font, span").forEach((child) => targets.push(child));
+
+      for (const target of targets) {
+        target.style.removeProperty("background");
+        target.style.removeProperty("background-color");
+        target.style.removeProperty("box-shadow");
+        target.style.removeProperty("border");
+        target.style.removeProperty("outline");
+      }
+    };
+
+    const observer = new MutationObserver((mutations) => {
+      for (const mutation of mutations) {
+        if (mutation.type === "attributes") clearHighlight(mutation.target as Element);
+      }
+    });
+
+    observer.observe(document.body, {
+      attributes: true,
+      attributeFilter: ["class"],
+      subtree: true,
+    });
+
+    document.querySelectorAll(".goog-text-highlight").forEach(clearHighlight);
+
+    return () => observer.disconnect();
+  }, []);
+
   return (
     <div
       id="google_translate_element"
