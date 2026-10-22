@@ -1,36 +1,82 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# PGM Trading
 
-## Getting Started
+Next.js 16 + Prisma 6 website and admin CMS for Pacific Global Myanmar: product
+catalog, dynamic page content, news, offices, inquiries and newsletter
+subscriptions.
 
-First, run the development server:
+## Requirements
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+- Node.js 20+
+- PostgreSQL 14+
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Setup
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+1. Install dependencies:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+   ```bash
+   npm install
+   ```
 
-## Learn More
+2. Create your environment file:
 
-To learn more about Next.js, take a look at the following resources:
+   ```bash
+   cp .env.example .env
+   ```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+   Set `DATABASE_URL` to a PostgreSQL connection string, for example:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+   ```env
+   DATABASE_URL="postgresql://postgres:root@localhost:5432/pgm-trading"
+   ```
 
-## Deploy on Vercel
+3. Generate the Prisma client and apply the schema:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+   ```bash
+   npm run db:generate
+   npm run db:migrate
+   ```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+   For an existing/production database use `npx prisma migrate deploy` instead
+   of `db:migrate`.
+
+4. Seed the site content and the admin account:
+
+   ```bash
+   npm run db:seed
+   ```
+
+   The seeded admin login is `admin@pgm-trading.com` / `admin123`. Change this
+   password before deploying.
+
+5. Start the development server:
+
+   ```bash
+   npm run dev
+   ```
+
+   Open [http://localhost:3000](http://localhost:3000). The admin dashboard is
+   at [http://localhost:3000/admin](http://localhost:3000/admin).
+
+## Scripts
+
+| Script | Purpose |
+| --- | --- |
+| `npm run dev` | Start the development server |
+| `npm run build` | Production build |
+| `npm run start` | Start the production server |
+| `npm run lint` | Run ESLint |
+| `npm run db:generate` | Generate the Prisma client |
+| `npm run db:migrate` | Create/apply a migration in development |
+| `npm run db:push` | Push the schema without creating a migration |
+| `npm run db:seed` | Seed categories, products, page content and the admin user |
+
+## Notes
+
+- Public pages read their content from PostgreSQL. Admin actions call
+  `revalidatePath`, so edits appear on the public site immediately.
+- Uploaded images are written to `public/media` (ignored by git). Use a
+  persistent volume or an object-storage adapter in production.
+- Passwords are stored with scrypt. Accounts created with the original
+  unsalted SHA-256 seed hash are upgraded automatically on their next sign-in.
+- Configure `TELEGRAM_BOT_TOKEN` / `TELEGRAM_CHAT_ID` or `RESEND_API_KEY` to
+  receive inquiry notifications.

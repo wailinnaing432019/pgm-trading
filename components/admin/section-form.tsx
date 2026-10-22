@@ -17,7 +17,6 @@ import type { PageSection } from "@prisma/client";
 import { submitPageSection } from "@/lib/actions/admin";
 import { ImageUploader } from "@/components/ui/image-uploader";
 import { SubmitButton } from "@/components/admin/submit-button";
-import { translateTradeTerm } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 export type SectionField = "title" | "subtitle" | "body" | "image";
@@ -196,8 +195,8 @@ export function SectionForm({
           <input type="hidden" name="page" value={page} />
           <input type="hidden" name="key" value={sectionKey} />
           <input type="hidden" name="position" value={String(section?.position ?? 0)} />
-          <input type="hidden" name="isActive" value="on" />
-          <input type="hidden" name="meta" value="{}" />
+          <input type="hidden" name="isActive" value={section?.isActive === false ? "" : "on"} />
+          <input type="hidden" name="meta" value={JSON.stringify(section?.meta ?? {})} />
 
           {/* Quick Toolbar: Auto-Translate & Live Preview */}
           <div className="mb-5 flex flex-wrap items-center justify-between gap-2.5">

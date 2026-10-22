@@ -12,7 +12,6 @@ const initialState: ActionState = { ok: false };
 export function InquiryForm({
   initialSubject = "",
   initialTab = "rfq",
-  phone = "+95 1 234 5678",
   whatsapp = "+959 123 456 789",
   viber = "+959 123 456 789",
 }: {

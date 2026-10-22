@@ -1,11 +1,11 @@
-import { getAdminSections, getAdminSupplySteps, getStats } from "@/lib/queries";
+import { getAdminSections, getAdminSupplySteps, getAllStats } from "@/lib/queries";
 import { SectionForm } from "@/components/admin/section-form";
 import { CollectionSection } from "@/components/admin/collection-section";
 import { IconSelect } from "@/components/admin/icon-select";
 import { submitStat, deleteStat, submitSupplyStep, deleteSupplyStep } from "@/lib/actions/admin";
 
 export default async function AdminPagesHome() {
-  const [sections, steps, stats] = await Promise.all([getAdminSections("home"), getAdminSupplySteps(), getStats()]);
+  const [sections, steps, stats] = await Promise.all([getAdminSections("home"), getAdminSupplySteps(), getAllStats()]);
 
   return (
     <div className="max-w-4xl space-y-12">

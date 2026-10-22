@@ -4,7 +4,6 @@ import { ProductCard } from "@/components/products/product-card";
 import { ProductFilters } from "@/components/products/product-filters";
 import { getCategories, getProducts, getTradeTypes } from "@/lib/queries";
 import { CategoryCard } from "@/components/categories/category-card";
-import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = {
   title: "Products & Commodities Catalog",

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Mail, MapPin, Phone } from "lucide-react";
 import { InquiryForm } from "@/components/contact/inquiry-form";
 import { AssetImage } from "@/components/ui/asset-image";
-import { getPageContent, getOffices, getSiteSettings } from "@/lib/queries";
+import { getPageContent, getOffices, getSectionForDisplay, getSiteSettings } from "@/lib/queries";
 import { TradeCredentials } from "@/components/layout/trade-credentials";
 
 export const metadata: Metadata = {
@@ -16,8 +16,9 @@ export default async function ContactPage({
 }: {
   searchParams: Promise<{ subject?: string; tab?: string }>;
 }) {
-  const [content, offices, settings] = await Promise.all([
+  const [content, trustSection, offices, settings] = await Promise.all([
     getPageContent("contact"),
+    getSectionForDisplay("contact", "trust"),
     getOffices(),
     getSiteSettings(),
   ]);
@@ -121,7 +122,7 @@ export default async function ContactPage({
       </section>
 
       {/* Official Credentials & Compliance */}
-      <TradeCredentials settings={settings} section={content.trust} />
+      <TradeCredentials settings={settings} section={trustSection} />
     </main>
   );
 }

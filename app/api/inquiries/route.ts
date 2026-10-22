@@ -18,7 +18,12 @@ export async function POST(request: Request) {
       );
     }
 
-    const inquiry = await prisma.inquiry.create({ data: parsed.data });
+    const inquiry = await prisma.inquiry.create({
+      data: {
+        ...parsed.data,
+        phone: parsed.data.phone?.trim() ? parsed.data.phone.trim() : null,
+      },
+    });
     return NextResponse.json({ ok: true, id: inquiry.id }, { status: 201 });
   } catch (error) {
     console.error("[POST /api/inquiries]", error);
@@ -27,7 +32,9 @@ export async function POST(request: Request) {
 }
 
 /**
- * POST /api/newsletter — subscribe an email from the footer form.
+ * PUT /api/inquiries — subscribe an email from the footer form.
+ * Kept for backwards compatibility; new integrations should use
+ * POST /api/newsletter.
  */
 export async function PUT(request: Request) {
   try {

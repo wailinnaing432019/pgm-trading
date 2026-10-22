@@ -3,11 +3,11 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
-import { createHash } from "crypto";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
 import { createSession, destroySession } from "@/lib/auth";
+import { hashPassword, isLegacyPasswordHash, verifyPassword } from "@/lib/password";
 import { flashAdminToast, TOAST_COOKIE } from "@/lib/toast";
 import {
   loginSchema,
@@ -33,8 +33,23 @@ export type AdminActionState = {
   fieldErrors?: Record<string, string[] | undefined>;
 };
 
-function hashPassword(password: string): string {
-  return createHash("sha256").update(password).digest("hex");
+/** Safely read a JSON-encoded form field; malformed values fall back instead of throwing. */
+function parseJsonField<T>(value: FormDataEntryValue | null, fallback: T): T {
+  if (typeof value !== "string" || value.trim() === "") return fallback;
+  try {
+    return JSON.parse(value) as T;
+  } catch {
+    return fallback;
+  }
+}
+
+function isUniqueConstraintError(error: unknown): boolean {
+  return error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002";
+}
+
+function nullableTrimmed(value: string | null | undefined): string | null {
+  const trimmed = value?.trim();
+  return trimmed ? trimmed : null;
 }
 
 /** Rebuild every public route after a content/settings change. */
@@ -72,8 +87,16 @@ export async function loginAdmin(_prev: AdminActionState | null, formData: FormD
   }
 
   const user = await prisma.user.findUnique({ where: { email: parsed.data.email } });
-  if (!user || user.passwordHash !== hashPassword(parsed.data.password) || !user.isActive) {
+  if (!user || !user.isActive || !verifyPassword(parsed.data.password, user.passwordHash)) {
     return { ok: false, error: "Invalid credentials." } satisfies AdminActionState;
+  }
+
+  // Upgrade legacy unsalted SHA-256 hashes the next time the user signs in.
+  if (isLegacyPasswordHash(user.passwordHash)) {
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { passwordHash: hashPassword(parsed.data.password) },
+    });
   }
 
   await createSession(user.id);
@@ -95,7 +118,7 @@ export async function saveProduct(_prev: AdminActionState | null, formData: Form
   await requireAdmin();
 
   const parsed = productSchema.safeParse({
-    id: formData.get("id") ?? undefined,
+    id: formData.get("id") || undefined,
     title: formData.get("title"),
     summary: formData.get("summary"),
     description: formData.get("description"),
@@ -107,25 +130,28 @@ export async function saveProduct(_prev: AdminActionState | null, formData: Form
     status: formData.get("status"),
     availability: formData.get("availability") || null,
     isFeatured: formData.get("isFeatured") === "on",
-    images: JSON.parse((formData.get("images") as string) || "[]"),
-    specs: JSON.parse((formData.get("specs") as string) || "{}"),
+    images: parseJsonField(formData.get("images"), []),
+    specs: parseJsonField(formData.get("specs"), {}),
+    seoTitle: formData.get("seoTitle") || undefined,
+    seoDescription: formData.get("seoDescription") || undefined,
   });
 
   if (!parsed.success) {
     return { ok: false, fieldErrors: parsed.error.flatten().fieldErrors } satisfies AdminActionState;
   }
 
-  const { tradeTypeIds, ...rest } = parsed.data;
-  const data = {
-    ...rest,
-    id: undefined,
-    specs: rest.specs as Prisma.InputJsonValue,
-    images: rest.images as Prisma.ProductCreateInput["images"],
-    price: rest.price ?? undefined,
-    availability: rest.availability ?? null,
-    seoTitle: rest.seoTitle,
-    seoDescription: rest.seoDescription,
-  };
+  const { tradeTypeIds, id, ...rest } = parsed.data;
+
+  const category = await prisma.category.findUnique({
+    where: { id: rest.categoryId },
+    select: { id: true },
+  });
+  if (!category) {
+    return {
+      ok: false,
+      fieldErrors: { categoryId: ["Choose an existing category."] },
+    } satisfies AdminActionState;
+  }
 
   const validTypeIds =
     tradeTypeIds.length > 0
@@ -137,26 +163,48 @@ export async function saveProduct(_prev: AdminActionState | null, formData: Form
         ).map((t) => t.id)
       : [];
 
-  if (parsed.data.id) {
-    await prisma.$transaction([
-      prisma.product.update({ where: { id: parsed.data.id }, data }),
-      prisma.productTradeType.deleteMany({ where: { productId: parsed.data.id } }),
-      ...validTypeIds.map((tradeTypeId) =>
-        prisma.productTradeType.create({
-          data: { productId: parsed.data.id!, tradeTypeId },
-        })
-      ),
-    ]);
-  } else {
-    const created = await prisma.product.create({ data });
-    if (validTypeIds.length > 0) {
-      await prisma.productTradeType.createMany({
-        data: validTypeIds.map((tradeTypeId) => ({ productId: created.id, tradeTypeId })),
+  const data = {
+    ...rest,
+    origin: nullableTrimmed(rest.origin),
+    unit: nullableTrimmed(rest.unit),
+    price: rest.price ?? null,
+    availability: rest.availability ?? null,
+    seoTitle: nullableTrimmed(rest.seoTitle),
+    seoDescription: nullableTrimmed(rest.seoDescription),
+    specs: rest.specs as Prisma.InputJsonValue,
+    images: rest.images,
+  };
+
+  try {
+    if (id) {
+      await prisma.$transaction([
+        prisma.product.update({ where: { id }, data }),
+        prisma.productTradeType.deleteMany({ where: { productId: id } }),
+        ...validTypeIds.map((tradeTypeId) =>
+          prisma.productTradeType.create({ data: { productId: id, tradeTypeId } })
+        ),
+      ]);
+    } else {
+      await prisma.product.create({
+        data: {
+          ...data,
+          tradeTypes: {
+            create: validTypeIds.map((tradeTypeId) => ({
+              tradeType: { connect: { id: tradeTypeId } },
+            })),
+          },
+        },
       });
     }
+  } catch (error) {
+    console.error("[saveProduct]", error);
+    return {
+      ok: false,
+      error: "Could not save this product. Please check the form and try again.",
+    } satisfies AdminActionState;
   }
 
-  revalidatePath("/products");
+  revalidateContent();
   revalidatePath("/admin/products");
   return { ok: true } satisfies AdminActionState;
 }
@@ -166,8 +214,13 @@ export async function deleteProduct(formData: FormData) {
   const id = formData.get("id");
   if (typeof id !== "string") return;
 
-  await prisma.product.delete({ where: { id } });
-  await flashAdminToast({ type: "success", text: "Product deleted." });
+  try {
+    await prisma.product.delete({ where: { id } });
+    await flashAdminToast({ type: "success", text: "Product deleted." });
+  } catch (error) {
+    console.error("[deleteProduct]", error);
+    await flashAdminToast({ type: "error", text: "Could not delete this product. It may already be gone." });
+  }
   revalidateAdminContent();
 }
 
@@ -193,12 +246,28 @@ export async function saveCategory(_prev: AdminActionState | null, formData: For
     return { ok: false, fieldErrors: parsed.error.flatten().fieldErrors } satisfies AdminActionState;
   }
 
-  const { id, ...data } = parsed.data;
+  const { id, ...rawData } = parsed.data;
+  const data = {
+    ...rawData,
+    description: nullableTrimmed(rawData.description),
+    image: nullableTrimmed(rawData.image),
+  };
 
-  if (id) {
-    await prisma.category.update({ where: { id }, data });
-  } else {
-    await prisma.category.create({ data });
+  try {
+    if (id) {
+      await prisma.category.update({ where: { id }, data });
+    } else {
+      await prisma.category.create({ data });
+    }
+  } catch (error) {
+    if (isUniqueConstraintError(error)) {
+      const message = "That slug is already used by another category.";
+      await flashAdminToast({ type: "error", text: message });
+      return { ok: false, fieldErrors: { slug: [message] } } satisfies AdminActionState;
+    }
+    console.error("[saveCategory]", error);
+    await flashAdminToast({ type: "error", text: "Could not save this category. Please try again." });
+    return { ok: false, error: "Could not save this category." } satisfies AdminActionState;
   }
 
   await flashAdminToast({ type: "success", text: id ? "Category updated." : "Category created." });
@@ -253,19 +322,31 @@ export async function saveTradeType(_prev: AdminActionState | null, formData: Fo
     return { ok: false, fieldErrors: parsed.error.flatten().fieldErrors } satisfies AdminActionState;
   }
 
-  const { id, ...data } = parsed.data;
+  const { id, ...rawData } = parsed.data;
+  const data = { ...rawData, description: nullableTrimmed(rawData.description) };
 
-  if (id) {
-    await prisma.tradeType.update({ where: { id }, data });
-  } else {
-    const existing = await prisma.tradeType.findFirst({
-      where: { label: { equals: data.label, mode: "insensitive" } },
-    });
-    if (existing) {
-      await prisma.tradeType.update({ where: { id: existing.id }, data });
+  try {
+    if (id) {
+      await prisma.tradeType.update({ where: { id }, data });
     } else {
-      await prisma.tradeType.create({ data });
+      const existing = await prisma.tradeType.findFirst({
+        where: { label: { equals: data.label, mode: "insensitive" } },
+      });
+      if (existing) {
+        await prisma.tradeType.update({ where: { id: existing.id }, data });
+      } else {
+        await prisma.tradeType.create({ data });
+      }
     }
+  } catch (error) {
+    if (isUniqueConstraintError(error)) {
+      const message = "That label is already used by another trade type.";
+      await flashAdminToast({ type: "error", text: message });
+      return { ok: false, fieldErrors: { label: [message] } } satisfies AdminActionState;
+    }
+    console.error("[saveTradeType]", error);
+    await flashAdminToast({ type: "error", text: "Could not save this trade type. Please try again." });
+    return { ok: false, error: "Could not save this trade type." } satisfies AdminActionState;
   }
 
   await flashAdminToast({ type: "success", text: id ? "Trade type updated." : "Trade type created." });
@@ -319,7 +400,7 @@ export async function savePageSection(_prev: AdminActionState | null, formData: 
     subtitle: formData.get("subtitle") ?? undefined,
     body: formData.get("body") ?? undefined,
     image: formData.get("image") ?? undefined,
-    meta: JSON.parse((formData.get("meta") as string) || "{}"),
+    meta: parseJsonField(formData.get("meta"), {}),
     position: formData.get("position") || 0,
     isActive: formData.get("isActive") === "on",
   });
@@ -330,16 +411,26 @@ export async function savePageSection(_prev: AdminActionState | null, formData: 
   }
 
   const { id, ...rawData } = parsed.data;
-  const data = { ...rawData, meta: rawData.meta as Prisma.InputJsonValue };
+  const data = {
+    ...rawData,
+    image: nullableTrimmed(rawData.image),
+    meta: rawData.meta as Prisma.InputJsonValue,
+  };
 
-  if (id) {
-    await prisma.pageSection.update({ where: { id }, data });
-  } else {
-    await prisma.pageSection.upsert({
-      where: { page_key: { page: data.page, key: data.key } },
-      update: data,
-      create: data,
-    });
+  try {
+    if (id) {
+      await prisma.pageSection.update({ where: { id }, data });
+    } else {
+      await prisma.pageSection.upsert({
+        where: { page_key: { page: data.page, key: data.key } },
+        update: data,
+        create: data,
+      });
+    }
+  } catch (error) {
+    console.error("[savePageSection]", error);
+    await flashAdminToast({ type: "error", text: "Could not save this section. Please try again." });
+    return { ok: false, error: "Could not save this section." } satisfies AdminActionState;
   }
 
   await flashAdminToast({ type: "success", text: "Section saved." });
@@ -413,7 +504,12 @@ export async function saveService(_prev: AdminActionState | null, formData: Form
     return { ok: false, fieldErrors: parsed.error.flatten().fieldErrors } satisfies AdminActionState;
   }
 
-  const { id, ...data } = parsed.data;
+  const { id, ...rawData } = parsed.data;
+  const data = {
+    ...rawData,
+    icon: nullableTrimmed(rawData.icon),
+    image: nullableTrimmed(rawData.image),
+  };
 
   if (id) {
     await prisma.service.update({ where: { id }, data });
@@ -483,7 +579,13 @@ export async function saveOffice(_prev: AdminActionState | null, formData: FormD
     return { ok: false, fieldErrors: parsed.error.flatten().fieldErrors } satisfies AdminActionState;
   }
 
-  const { id, ...data } = parsed.data;
+  const { id, ...rawData } = parsed.data;
+  const data = {
+    ...rawData,
+    phone: nullableTrimmed(rawData.phone),
+    email: nullableTrimmed(rawData.email),
+    whatsapp: nullableTrimmed(rawData.whatsapp),
+  };
 
   if (id) {
     await prisma.office.update({ where: { id }, data });
@@ -643,7 +745,12 @@ export async function saveMilestone(_prev: AdminActionState | null, formData: Fo
     return { ok: false, fieldErrors: parsed.error.flatten().fieldErrors } satisfies AdminActionState;
   }
 
-  const { id, ...data } = parsed.data;
+  const { id, ...rawData } = parsed.data;
+  const data = {
+    ...rawData,
+    description: nullableTrimmed(rawData.description),
+    image: nullableTrimmed(rawData.image),
+  };
 
   if (id) {
     await prisma.milestone.update({ where: { id }, data });
@@ -738,15 +845,24 @@ export async function saveBlog(_prev: AdminActionState | null, formData: FormDat
     return { ok: false, fieldErrors: parsed.error.flatten().fieldErrors } satisfies AdminActionState;
   }
 
-  const { id, ...data } = parsed.data;
+  const { id, ...rawData } = parsed.data;
+  const data = { ...rawData, coverImage: nullableTrimmed(rawData.coverImage) };
 
-  if (id) {
-    await prisma.blog.update({ where: { id }, data });
-  } else {
-    await prisma.blog.create({ data: { ...data, authorId: user.id } });
+  try {
+    if (id) {
+      await prisma.blog.update({ where: { id }, data });
+    } else {
+      await prisma.blog.create({ data: { ...data, authorId: user.id } });
+    }
+  } catch (error) {
+    console.error("[saveBlog]", error);
+    return {
+      ok: false,
+      error: "Could not save this article. Please check the form and try again.",
+    } satisfies AdminActionState;
   }
 
-  revalidatePath("/news");
+  revalidateContent();
   revalidatePath("/admin/news");
   return { ok: true } satisfies AdminActionState;
 }

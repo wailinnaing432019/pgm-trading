@@ -245,6 +245,9 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const saved = localStorage.getItem("pgm_lang") as Language | null;
     if (saved === "en" || saved === "my") {
+      // Reading the persisted preference after hydration avoids a server/client
+      // markup mismatch. The effect only synchronizes with localStorage.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setLangState(saved);
     }
   }, []);

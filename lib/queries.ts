@@ -55,6 +55,15 @@ export const getSection = cache(async (page: string, key: string) => {
   );
 });
 
+/**
+ * Fetch a section regardless of its `isActive` flag. Used by blocks that can
+ * be switched off from the admin (e.g. Trust & Compliance) and therefore must
+ * receive the inactive row to know that they should not render.
+ */
+export const getSectionForDisplay = cache(async (page: string, key: string) => {
+  return safe(() => prisma.pageSection.findFirst({ where: { page, key } }), null);
+});
+
 export const getStats = cache(async () => {
   return safe(
     () =>
@@ -340,7 +349,13 @@ export const getBlogById = cache(async (id: string) => {
         include: { author: { select: { name: true } } },
       });
       if (blog) {
-        await prisma.blog.update({ where: { id: blog.id }, data: { viewCount: { increment: 1 } } });
+        // A failed counter update must never make the article disappear, so
+        // the increment is isolated from the read.
+        try {
+          await prisma.blog.update({ where: { id: blog.id }, data: { viewCount: { increment: 1 } } });
+        } catch (error) {
+          console.error("[queries] could not increment blog view count:", error);
+        }
       }
       return blog;
     },
@@ -379,6 +394,17 @@ export const getAdminStats = cache(async () => {
       return { products, categories, inquiries, blogs, pendingInquiries, newsletters, services, offices, milestones };
     },
     { products: 0, categories: 0, inquiries: 0, blogs: 0, pendingInquiries: 0, newsletters: 0, services: 0, offices: 0, milestones: 0 }
+  );
+});
+
+/** Every stat, including inactive rows, so admins can re-enable them. */
+export const getAllStats = cache(async () => {
+  return safe(
+    () =>
+      prisma.stat.findMany({
+        orderBy: [{ position: "asc" }, { label: "asc" }],
+      }),
+    []
   );
 });
 
@@ -483,10 +509,13 @@ export const getAdminProducts = cache(async (query = "") => {
 });
 
 export const getAdminInquiries = cache(async (status?: string) => {
+  const validStatus = ["NEW", "IN_PROGRESS", "RESOLVED", "ARCHIVED"].includes(status ?? "")
+    ? (status as Prisma.InquiryWhereInput["status"])
+    : undefined;
   return safe(
     () =>
       prisma.inquiry.findMany({
-        where: status ? { status: status as Prisma.InquiryWhereInput["status"] } : undefined,
+        where: validStatus ? { status: validStatus } : undefined,
         include: { assignedTo: { select: { name: true } } },
         orderBy: { createdAt: "desc" },
         take: 100,

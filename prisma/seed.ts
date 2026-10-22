@@ -1,12 +1,12 @@
-import { PrismaClient } from "@prisma/client"
-import { createHash } from "crypto"
+import { Prisma, PrismaClient } from "@prisma/client"
+import { hashPassword } from "../lib/password"
 
 const prisma = new PrismaClient()
 
 async function main() {
   console.log("Seeding database…")
 
-  const passwordHash = createHash("sha256").update("admin123").digest("hex")
+  const passwordHash = hashPassword("admin123")
 
   const admin = await prisma.user.upsert({
     where: { email: "admin@pgm-trading.com" },
@@ -120,23 +120,36 @@ async function main() {
       .map((label) => tradeTypeByLabel[label])
       .filter((id): id is string => Boolean(id))
 
-    const tradeTypesLink = {
-      tradeTypes: {
-        deleteMany: {},
-        create: typeIds.map((tradeTypeId) => ({
-          tradeType: { connect: { id: tradeTypeId } },
-        })),
-      },
+    const productData = {
+      ...data,
+      specs: data.specs as Prisma.InputJsonValue,
+      categoryId: category.id,
     }
 
     const existing = await prisma.product.findFirst({ where: { title: p.title } })
     if (existing) {
-      await prisma.product.update({
-        where: { id: existing.id },
-        data: { ...data, ...tradeTypesLink, categoryId: category.id },
-      })
+      // ProductTradeType is an explicit join model, so Prisma does not allow
+      // `deleteMany` inside a nested `tradeTypes` update. Replace the links in
+      // a single transaction instead so a failed seed never leaves a product
+      // with stale or duplicated trade types.
+      await prisma.$transaction([
+        prisma.product.update({ where: { id: existing.id }, data: productData }),
+        prisma.productTradeType.deleteMany({ where: { productId: existing.id } }),
+        ...typeIds.map((tradeTypeId) =>
+          prisma.productTradeType.create({ data: { productId: existing.id, tradeTypeId } })
+        ),
+      ])
     } else {
-      await prisma.product.create({ data: { ...data, ...tradeTypesLink, categoryId: category.id } })
+      await prisma.product.create({
+        data: {
+          ...productData,
+          tradeTypes: {
+            create: typeIds.map((tradeTypeId) => ({
+              tradeType: { connect: { id: tradeTypeId } },
+            })),
+          },
+        },
+      })
     }
   }
 
