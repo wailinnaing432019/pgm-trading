@@ -85,7 +85,7 @@ export const blogSchema = z.object({
   title: z.string().trim().min(2).max(200),
   excerpt: z.string().trim().min(2).max(400),
   body: z.string().trim().min(2),
-  coverImage: z.string().trim().max(500).optional().or(z.literal("")),
+  images: z.array(z.string().trim().max(500)).max(24).default([]),
   tags: z.array(z.string()).default([]),
   status: z.enum(["DRAFT", "PUBLISHED"]),
   publishedAt: z.coerce.date().optional().nullable(),

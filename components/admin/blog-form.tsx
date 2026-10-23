@@ -6,20 +6,20 @@ import type { Blog } from "@prisma/client";
 import { saveBlog, type AdminActionState } from "@/lib/actions/admin";
 import { ImageUploader } from "@/components/ui/image-uploader";
 import { useToast } from "@/components/admin/toast";
+import { blogImages } from "@/lib/blog";
 
 const initialState: AdminActionState = { ok: false };
 
 export function BlogForm({ post }: { post?: Blog }) {
   const [state, action, pending] = useActionState<AdminActionState, FormData>(saveBlog, initialState);
   const { pushToast } = useToast();
+  const initialImages = post ? blogImages(post) : [];
 
   useEffect(() => {
-    if (state.ok) {
-      pushToast("success", post ? "Article updated." : "Article published.");
-    } else if (state.error) {
+    if (state.error) {
       pushToast("error", state.error);
     }
-  }, [state, post, pushToast]);
+  }, [state, pushToast]);
 
   return (
     <form action={action} className="grid gap-5">
@@ -41,10 +41,14 @@ export function BlogForm({ post }: { post?: Blog }) {
 
       <div>
         <ImageUploader
-          name="coverImage"
-          label="Cover image"
-          initial={post?.coverImage ? [post.coverImage] : []}
+          name="images"
+          label="Article images"
+          multiple
+          initial={initialImages}
         />
+        <p className="mt-1.5 text-xs text-forest-700/60">
+          Upload one or more images. The first image is used as the cover in listings and at the top of the article.
+        </p>
       </div>
 
       <div>

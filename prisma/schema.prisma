@@ -277,6 +277,8 @@ model Blog {
   excerpt     String
   body        String // rich text / HTML from the admin editor
   coverImage  String?
+  /** Activity / news gallery. The first entry is also used as coverImage. */
+  images      String[]  @default([])
   tags        String[]  @default([])
   authorId    String?
   author      User?     @relation(fields: [authorId], references: [id], onDelete: SetNull)

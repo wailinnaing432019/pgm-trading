@@ -4,6 +4,7 @@ import { CalendarDays, ArrowUpRight } from "lucide-react";
 import { AssetImage } from "@/components/ui/asset-image";
 import { Badge } from "@/components/ui/badge";
 import { getBlogs } from "@/lib/queries";
+import { blogCover } from "@/lib/blog";
 import { formatDate } from "@/lib/utils";
 import { pageMetadata } from "@/lib/seo";
 
@@ -41,7 +42,7 @@ export default async function NewsPage() {
                   >
                     <div className="relative h-52 overflow-hidden">
                       <AssetImage
-                        src={post.coverImage}
+                        src={blogCover(post)}
                         alt={post.title}
                         placeholderIcon="leaf"
                         className="transition-transform duration-500 group-hover:scale-105"

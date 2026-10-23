@@ -852,12 +852,17 @@ export async function submitSiteSettings(formData: FormData) {
 export async function saveBlog(_prev: AdminActionState | null, formData: FormData) {
   const user = await requireAdmin();
 
+  const rawImages = parseJsonField<unknown>(formData.get("images"), []);
+  const images = Array.isArray(rawImages)
+    ? rawImages.filter((value): value is string => typeof value === "string" && value.trim().length > 0)
+    : [];
+
   const parsed = blogSchema.safeParse({
     id: formData.get("id") ?? undefined,
     title: formData.get("title"),
     excerpt: formData.get("excerpt"),
     body: formData.get("body"),
-    coverImage: formData.get("coverImage"),
+    images,
     tags: String(formData.get("tags") ?? "")
       .split(",")
       .map((t) => t.trim())
@@ -871,7 +876,8 @@ export async function saveBlog(_prev: AdminActionState | null, formData: FormDat
   }
 
   const { id, ...rawData } = parsed.data;
-  const data = { ...rawData, coverImage: nullableTrimmed(rawData.coverImage) };
+  // The first gallery image doubles as the cover used in listings and previews.
+  const data = { ...rawData, coverImage: rawData.images[0] ?? null };
 
   try {
     if (id) {
@@ -887,9 +893,14 @@ export async function saveBlog(_prev: AdminActionState | null, formData: FormDat
     } satisfies AdminActionState;
   }
 
-  revalidateContent();
+  await flashAdminToast({
+    type: "success",
+    text: id ? "Article updated." : "Article published.",
+  });
+  revalidateAdminContent();
   revalidatePath("/admin/news");
-  return { ok: true } satisfies AdminActionState;
+  // Back to the article list so the editor can see the saved result in context.
+  redirect("/admin/news");
 }
 
 export async function deleteBlog(formData: FormData) {

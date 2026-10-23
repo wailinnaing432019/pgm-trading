@@ -6,7 +6,8 @@ import { AssetImage } from "@/components/ui/asset-image";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { getBlogById } from "@/lib/queries";
-import { formatDate } from "@/lib/utils";
+import { blogCover, blogImages } from "@/lib/blog";
+import { cn, formatDate } from "@/lib/utils";
 import { pageMetadata } from "@/lib/seo";
 
 export async function generateMetadata({
@@ -24,7 +25,7 @@ export async function generateMetadata({
     title: post.title,
     description: post.excerpt,
     path: `/news/${post.id}`,
-    image: post.coverImage,
+    image: blogCover(post),
     type: "article",
     publishedTime: (post.publishedAt ?? post.createdAt).toISOString(),
     modifiedTime: post.updatedAt.toISOString(),
@@ -39,6 +40,9 @@ export default async function NewsDetailPage({
   const { id } = await params;
   const post = await getBlogById(id);
   if (!post) notFound();
+
+  const images = blogImages(post);
+  const gallery = images.slice(1);
 
   return (
     <main>
@@ -72,13 +76,47 @@ export default async function NewsDetailPage({
             <p className="mt-5 text-lg leading-relaxed text-forest-800/75">{post.excerpt}</p>
 
             <div className="relative mt-10 aspect-[16/7] overflow-hidden rounded-3xl">
-              <AssetImage src={post.coverImage} alt={post.title} placeholderIcon="leaf" priority />
+              <AssetImage src={images[0] ?? null} alt={post.title} placeholderIcon="leaf" priority />
             </div>
 
             <div
               className="rich-text mt-10"
               dangerouslySetInnerHTML={{ __html: post.body }}
             />
+
+            {gallery.length > 0 ? (
+              <section className="mt-12 border-t border-sand-200 pt-8">
+                <div className="flex items-baseline justify-between gap-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.22em] text-forest-700/60">
+                    Activity gallery
+                  </p>
+                  <span className="text-xs text-forest-700/50">
+                    {gallery.length} photo{gallery.length === 1 ? "" : "s"}
+                  </span>
+                </div>
+                <div className="mt-5 grid gap-4 sm:grid-cols-2">
+                  {gallery.map((src, index) => {
+                    const spansBoth = gallery.length % 2 === 1 && index === gallery.length - 1;
+                    return (
+                      <div
+                        key={`${src}-${index}`}
+                        className={cn(
+                          "relative aspect-[4/3] overflow-hidden rounded-2xl border border-sand-200 bg-sand-100",
+                          spansBoth && "sm:col-span-2 sm:aspect-[16/9]"
+                        )}
+                      >
+                        <AssetImage
+                          src={src}
+                          alt={`${post.title} — activity photo ${index + 2}`}
+                          placeholderIcon="leaf"
+                          sizes="(min-width: 640px) 50vw, 100vw"
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
+            ) : null}
           </div>
 
           <div className="section-container mt-14 max-w-4xl">

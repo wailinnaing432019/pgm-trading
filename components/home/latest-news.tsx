@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { Button } from "@/components/ui/button";
 import { formatDate } from "@/lib/utils";
+import { blogCover } from "@/lib/blog";
 import { getSection } from "@/lib/queries";
 
 export async function LatestNews({ posts }: { posts: Blog[] }) {
@@ -38,7 +39,7 @@ export async function LatestNews({ posts }: { posts: Blog[] }) {
           >
             <div className="relative h-72 overflow-hidden lg:h-80">
               <AssetImage
-                src={lead.coverImage}
+                src={blogCover(lead)}
                 alt={lead.title}
                 placeholderIcon="leaf"
                 className="transition-transform duration-500 group-hover:scale-105"
@@ -68,7 +69,7 @@ export async function LatestNews({ posts }: { posts: Blog[] }) {
                 className="card-surface group flex gap-4 p-4 transition-all duration-300 hover:-translate-y-1 hover:shadow-lift"
               >
                 <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-xl">
-                  <AssetImage src={post.coverImage} alt={post.title} placeholderIcon="package" />
+                  <AssetImage src={blogCover(post)} alt={post.title} placeholderIcon="package" />
                 </div>
                 <div className="min-w-0">
                   <p className="text-xs text-forest-700/60">{formatDate(post.publishedAt)}</p>
