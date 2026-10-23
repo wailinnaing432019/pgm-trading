@@ -20,34 +20,40 @@ const geistSerif = Source_Serif_4({
   weight: ["400", "500", "600", "700"],
 });
 
-export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"),
-  title: {
-    default: "PGM Trading — Myanmar Agricultural Import, Export & Distribution",
-    template: "%s | PGM Trading",
-  },
-  description:
-    "Pacific Global Myanmar: agricultural import, export, trading, cold-chain distribution and contract farming — from Myanmar fields to global markets.",
-  keywords: [
-    "agricultural export",
-    "myanmar",
-    "rice export",
-    "agro trading",
-    "cold chain",
-    "PGM Trading",
-  ],
-  openGraph: {
-    type: "website",
-    locale: "en_MM",
-    siteName: "PGM Trading",
-  },
-  icons: {
-    icon: "/api/brand-icon",
-    shortcut: "/api/brand-icon",
-    apple: "/api/brand-icon",
-  },
-  robots: { index: true, follow: true },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const settings = await getSiteSettings();
+  // Bust the browser favicon cache whenever the admin changes the brand icon.
+  const iconHref = `/api/brand-icon?v=${encodeURIComponent(settings.logo || "fallback")}`;
+
+  return {
+    metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"),
+    title: {
+      default: "PGM Trading — Myanmar Agricultural Import, Export & Distribution",
+      template: "%s | PGM Trading",
+    },
+    description:
+      "Pacific Global Myanmar: agricultural import, export, trading, cold-chain distribution and contract farming — from Myanmar fields to global markets.",
+    keywords: [
+      "agricultural export",
+      "myanmar",
+      "rice export",
+      "agro trading",
+      "cold chain",
+      "PGM Trading",
+    ],
+    openGraph: {
+      type: "website",
+      locale: "en_MM",
+      siteName: "PGM Trading",
+    },
+    icons: {
+      icon: iconHref,
+      shortcut: iconHref,
+      apple: iconHref,
+    },
+    robots: { index: true, follow: true },
+  };
+}
 
 export default async function RootLayout(props: LayoutProps<"/">) {
   const [settings, offices, newsletter] = await Promise.all([

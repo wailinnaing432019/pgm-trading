@@ -132,7 +132,7 @@ export function BrandSettingsForm({ settings }: { settings: SiteSettings }) {
                 initial={settings.logo ? [settings.logo] : []}
               />
               <p className="mt-1 text-xs text-forest-700/60">
-                Transparent PNG, SVG or WebP recommended. Leave blank to display the default wheat monogram.
+                Transparent PNG, SVG or WebP recommended. Leave blank to use the default brand icon.
               </p>
             </div>
 

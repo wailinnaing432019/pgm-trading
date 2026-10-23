@@ -13,10 +13,10 @@ import {
   PanelLeft,
   Settings,
   Tags,
-  Wheat,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { BrandLogo } from "@/components/ui/brand-logo";
 import { logoutAdmin } from "@/lib/actions/admin";
 
 type NavItem = {
@@ -35,7 +35,7 @@ const nav: NavItem[] = [
   { label: "Products", href: "/admin/products", icon: Package },
   { label: "Categories", href: "/admin/categories", icon: FolderTree },
   { label: "Trade Types", href: "/admin/trade-types", icon: Tags },
-  { label: "Pages & Content", href: "/admin/pages/home", icon: Settings, match: "/admin/pages" },
+  { label: "Pages & Contents Setup", href: "/admin/pages/home", icon: Settings, match: "/admin/pages" },
   { label: "News & Media", href: "/admin/news", icon: Newspaper },
   { label: "Inquiries", href: "/admin/inquiries", icon: Inbox },
 ];
@@ -68,14 +68,10 @@ export function AdminShell({
       {/* Sidebar */}
       <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col bg-forest-950 text-cream md:flex">
         <Link href="/admin" className="flex items-center gap-2.5 px-6 py-5">
-          {logo ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={logo} alt="" className="h-8 w-auto max-w-[140px] object-contain" />
-          ) : (
-            <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-forest-800 text-gold-300">
-              <Wheat className="h-5 w-5" aria-hidden />
-            </span>
-          )}
+          <BrandLogo
+            src={logo}
+            className={logo ? "h-8 w-auto max-w-[140px]" : "h-9 w-9"}
+          />
           <span className="leading-tight">
             <span className="block font-serif text-base font-semibold">PGM Admin</span>
             <span className="block text-[11px] uppercase tracking-wider text-cream/50">CMS</span>

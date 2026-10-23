@@ -65,31 +65,46 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
 function ToastCard({ toast, onDismiss }: { toast: Toast; onDismiss: (id: number) => void }) {
   const icon =
     toast.type === "success" ? (
-      <CheckCircle2 className="h-5 w-5 shrink-0 text-forest-600" aria-hidden />
+      <CheckCircle2 className="h-5 w-5 shrink-0 text-gold-300" aria-hidden />
     ) : toast.type === "error" ? (
-      <AlertTriangle className="h-5 w-5 shrink-0 text-soil-600" aria-hidden />
+      <AlertTriangle className="h-5 w-5 shrink-0 text-soil-300" aria-hidden />
     ) : (
-      <Info className="h-5 w-5 shrink-0 text-forest-600" aria-hidden />
+      <Info className="h-5 w-5 shrink-0 text-gold-300" aria-hidden />
     );
 
   return (
     <div
       role="status"
       className={cn(
-        "card-surface pointer-events-auto flex items-start gap-3 rounded-2xl p-4 shadow-lift animate-fade-up",
-        toast.type === "error" && "border-soil-300"
+        "pointer-events-auto relative flex items-start gap-3 overflow-hidden rounded-2xl p-4 shadow-lift animate-fade-up",
+        "bg-forest-900 text-cream ring-1 ring-cream/10",
+        toast.type === "error" && "bg-soil-900 ring-soil-500/30"
       )}
     >
       {icon}
-      <p className="flex-1 text-sm font-medium text-forest-950">{toast.text}</p>
+      <p className="flex-1 text-sm font-medium text-cream">{toast.text}</p>
       <button
         type="button"
         onClick={() => onDismiss(toast.id)}
-        className="rounded-full p-1 text-forest-700/50 transition-colors hover:bg-sand-100 hover:text-forest-900"
+        className="rounded-full p-1 text-cream/50 transition-colors hover:bg-cream/10 hover:text-cream"
         aria-label="Dismiss notification"
       >
         <X className="h-4 w-4" aria-hidden />
       </button>
+
+      {/* Countdown sits on the bottom edge so the toast keeps its height. */}
+      <span
+        aria-hidden
+        className="absolute inset-x-0 bottom-0 h-[3px] overflow-hidden bg-cream/10"
+      >
+        <span
+          className={cn(
+            "block h-full w-full origin-left",
+            toast.type === "error" ? "bg-soil-300" : "bg-gold-400"
+          )}
+          style={{ animation: `toast-progress ${TOAST_VISIBLE_MS}ms linear forwards` }}
+        />
+      </span>
     </div>
   );
 }

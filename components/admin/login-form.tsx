@@ -1,8 +1,9 @@
 "use client";
 
 import { useActionState, useEffect } from "react";
-import { Loader2, ShieldCheck } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { loginAdmin, type AdminActionState } from "@/lib/actions/admin";
+import { BrandLogo } from "@/components/ui/brand-logo";
 import { useToast } from "@/components/admin/toast";
 
 const initialState: AdminActionState = { ok: false };
@@ -19,12 +20,10 @@ export function LoginForm({ logo }: { logo?: string }) {
     <div className="card-surface w-full max-w-md p-8">
       <div className="flex items-center gap-3">
         <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-forest-700 text-gold-300">
-          {logo ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={logo} alt="" className="h-8 w-auto max-w-[120px] object-contain" />
-          ) : (
-            <ShieldCheck className="h-6 w-6" aria-hidden />
-          )}
+          <BrandLogo
+            src={logo}
+            className={logo ? "h-8 w-auto max-w-[120px]" : "h-9 w-9"}
+          />
         </span>
         <div>
           <h1 className="font-serif text-xl font-semibold text-forest-950">PGM Admin</h1>

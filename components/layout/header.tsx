@@ -3,10 +3,11 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Globe, Mail, Menu, Phone, X, Wheat } from "lucide-react";
+import { Globe, Mail, Menu, Phone, X } from "lucide-react";
 import { navLinks, type SiteSettings } from "@/lib/site";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { BrandLogo } from "@/components/ui/brand-logo";
 import { SiteLogo } from "@/components/layout/site-logo";
 import { useLanguage } from "@/lib/i18n";
 import { WhatsAppIcon, ViberIcon } from "@/components/ui/trade-icons";
@@ -35,12 +36,7 @@ export function Header({ settings }: { settings: SiteSettings }) {
       <div className="hidden bg-forest-950 text-cream/80 md:block">
         <div className="section-container flex h-9 items-center justify-between text-xs">
           <p className="flex items-center gap-2">
-            {settings.logo ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={settings.logo} alt="" className="h-6 w-auto max-w-[90px] object-contain" />
-            ) : (
-              <Wheat className="h-3.5 w-3.5 text-gold-400" aria-hidden />
-            )}
+            <BrandLogo src={settings.logo} className="h-6 w-auto max-w-[90px]" />
             <span className="font-medium tracking-wide">{settings.tagline}</span>
           </p>
           <div className="flex items-center gap-5">

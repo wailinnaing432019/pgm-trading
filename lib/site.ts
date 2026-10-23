@@ -41,6 +41,9 @@ export const siteDefaults: SiteSettings = {
 
 export const settingsKeys = Object.keys(siteDefaults) as (keyof SiteSettings)[];
 
+/** Bundled emblem used wherever a configured logo is missing or unreadable. */
+export const brandIconFallback = "/brand-icon.png";
+
 /** Merge raw StiteSetting meta over the defaults, dropping unknown keys. */
 export function resolveSettings(meta: unknown): SiteSettings {
   const source = (meta ?? {}) as Record<string, unknown>;
