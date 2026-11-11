@@ -1,8 +1,10 @@
 import Link from "next/link";
-import { Newspaper, Pencil, Plus, Trash2 } from "lucide-react";
+import { Images, Newspaper, Pencil, Plus, Trash2 } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { deleteBlog } from "@/lib/actions/admin";
+import { AssetImage } from "@/components/ui/asset-image";
 import { Badge } from "@/components/ui/badge";
+import { blogImages } from "@/lib/blog";
 import { formatDate } from "@/lib/utils";
 import { DangerSubmitButton } from "@/components/ui/danger-submit-button";
 
@@ -16,8 +18,8 @@ export default async function AdminNewsPage() {
     <div>
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="font-serif text-2xl font-semibold text-forest-950">News & Media</h1>
-          <p className="mt-1 text-sm text-forest-700/70">Write, schedule and manage market insight articles.</p>
+          <h1 className="font-serif text-2xl font-semibold text-forest-950">News &amp; Media</h1>
+          <p className="mt-1 text-sm text-forest-700/70">Write, schedule and manage multi-image articles.</p>
         </div>
         <Link
           href="/admin/news/new"
@@ -29,10 +31,11 @@ export default async function AdminNewsPage() {
 
       <div className="card-surface mt-8 overflow-x-auto">
         {posts.length > 0 ? (
-          <table className="w-full min-w-[640px] text-left text-sm">
+          <table className="w-full min-w-[680px] text-left text-sm">
             <thead>
               <tr className="border-b border-sand-200 text-xs uppercase tracking-wider text-forest-700/60">
                 <th className="px-6 py-3.5 font-semibold">Article</th>
+                <th className="px-4 py-3.5 font-semibold">Photos</th>
                 <th className="px-4 py-3.5 font-semibold">Status</th>
                 <th className="px-4 py-3.5 font-semibold">Views</th>
                 <th className="px-4 py-3.5 font-semibold">Created</th>
@@ -40,41 +43,61 @@ export default async function AdminNewsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-sand-200">
-              {posts.map((post) => (
-                <tr key={post.id} className="transition-colors hover:bg-sand-50">
-                  <td className="px-6 py-4">
-                    <Link href={`/news/${post.id}`} className="font-semibold text-forest-950 hover:text-forest-700">
-                      {post.title}
-                    </Link>
-                  </td>
-                  <td className="px-4 py-4">
-                    <Badge tone={post.status === "PUBLISHED" ? "forest" : "neutral"}>{post.status.toLowerCase()}</Badge>
-                  </td>
-                  <td className="px-4 py-4 text-forest-800/80">{post.viewCount}</td>
-                  <td className="px-4 py-4 text-forest-800/70">{formatDate(post.createdAt)}</td>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center justify-end gap-2">
-                      <Link
-                        href={`/admin/news/${post.id}`}
-                        className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-forest-100 text-forest-700 transition-colors hover:bg-forest-700 hover:text-cream"
-                        aria-label={`Edit ${post.title}`}
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Link>
-                      <form action={deleteBlog}>
-                        <input type="hidden" name="id" value={post.id} />
-                        <DangerSubmitButton
-                          confirmText="Delete this article permanently?"
-                          className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-soil-100 text-soil-800 transition-colors hover:bg-soil-700 hover:text-cream"
-                          aria-label={`Delete ${post.title}`}
+              {posts.map((post) => {
+                const images = blogImages(post);
+                return (
+                  <tr key={post.id} className="transition-colors hover:bg-sand-50">
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-3.5">
+                        <div className="relative h-12 w-16 shrink-0 overflow-hidden rounded-lg border border-sand-200">
+                          <AssetImage
+                            src={images[0] ?? null}
+                            alt={post.title}
+                            placeholderIcon="leaf"
+                            sizes="64px"
+                            className="h-full w-full"
+                          />
+                        </div>
+                        <Link href={`/news/${post.id}`} className="font-semibold text-forest-950 hover:text-forest-700">
+                          {post.title}
+                        </Link>
+                      </div>
+                    </td>
+                    <td className="px-4 py-4">
+                      <span className="inline-flex items-center gap-1.5 rounded-full bg-sand-100 px-2.5 py-1 text-xs font-medium text-forest-800">
+                        <Images className="h-3.5 w-3.5 text-forest-700/70" aria-hidden />
+                        {images.length}
+                      </span>
+                    </td>
+                    <td className="px-4 py-4">
+                      <Badge tone={post.status === "PUBLISHED" ? "forest" : "neutral"}>{post.status.toLowerCase()}</Badge>
+                    </td>
+                    <td className="px-4 py-4 text-forest-800/80">{post.viewCount}</td>
+                    <td className="px-4 py-4 text-forest-800/70">{formatDate(post.createdAt)}</td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center justify-end gap-2">
+                        <Link
+                          href={`/admin/news/${post.id}`}
+                          className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-forest-100 text-forest-700 transition-colors hover:bg-forest-700 hover:text-cream"
+                          aria-label={`Edit ${post.title}`}
                         >
-                          <Trash2 className="h-4 w-4" />
-                        </DangerSubmitButton>
-                      </form>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                          <Pencil className="h-4 w-4" />
+                        </Link>
+                        <form action={deleteBlog}>
+                          <input type="hidden" name="id" value={post.id} />
+                          <DangerSubmitButton
+                            confirmText="Delete this article permanently?"
+                            className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-soil-100 text-soil-800 transition-colors hover:bg-soil-700 hover:text-cream"
+                            aria-label={`Delete ${post.title}`}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </DangerSubmitButton>
+                        </form>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         ) : (

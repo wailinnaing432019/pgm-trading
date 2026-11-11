@@ -10,6 +10,21 @@ import { blogImages } from "@/lib/blog";
 
 const initialState: AdminActionState = { ok: false };
 
+function FieldError({
+  fieldErrors,
+  name,
+}: {
+  fieldErrors?: Record<string, string[] | undefined>;
+  name: string;
+}) {
+  const message = fieldErrors?.[name]?.[0];
+  return message ? (
+    <p className="mt-1 text-xs font-medium text-soil-700" role="alert">
+      {message}
+    </p>
+  ) : null;
+}
+
 export function BlogForm({ post }: { post?: Blog }) {
   const [state, action, pending] = useActionState<AdminActionState, FormData>(saveBlog, initialState);
   const { pushToast } = useToast();
@@ -18,6 +33,9 @@ export function BlogForm({ post }: { post?: Blog }) {
   useEffect(() => {
     if (state.error) {
       pushToast("error", state.error);
+    } else if (state.fieldErrors) {
+      const firstError = Object.values(state.fieldErrors).flat().find(Boolean);
+      if (firstError) pushToast("error", firstError);
     }
   }, [state, pushToast]);
 
@@ -32,23 +50,26 @@ export function BlogForm({ post }: { post?: Blog }) {
         <div>
           <label className="mb-1.5 block text-sm font-medium text-forest-900">Title *</label>
           <input name="title" required defaultValue={post?.title} className="input-admin" />
+          <FieldError fieldErrors={state.fieldErrors} name="title" />
         </div>
         <div>
           <label className="mb-1.5 block text-sm font-medium text-forest-900">Excerpt *</label>
           <input name="excerpt" required defaultValue={post?.excerpt} className="input-admin" />
+          <FieldError fieldErrors={state.fieldErrors} name="excerpt" />
         </div>
       </div>
 
       <div>
         <ImageUploader
           name="images"
-          label="Article images"
+          label="Article gallery images"
           multiple
           initial={initialImages}
         />
         <p className="mt-1.5 text-xs text-forest-700/60">
-          Upload one or more images. The first image is used as the cover in listings and at the top of the article.
+          Upload one or more photos (drag &amp; drop or click). Reorder photos or click &ldquo;Set cover&rdquo; to pick #1 — multi-image posts animate automatically as a slideshow thumbnail on the News &amp; Media feed.
         </p>
+        <FieldError fieldErrors={state.fieldErrors} name="images" />
       </div>
 
       <div>
@@ -61,6 +82,7 @@ export function BlogForm({ post }: { post?: Blog }) {
           Body (rich text — produced by the Tiptap editor)
         </label>
         <textarea name="body" required rows={12} defaultValue={post?.body} className="input-admin font-mono text-xs" />
+        <FieldError fieldErrors={state.fieldErrors} name="body" />
       </div>
 
       <div className="grid gap-5 sm:grid-cols-2">
