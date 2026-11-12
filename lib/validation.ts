@@ -28,6 +28,7 @@ export const productSchema = z.object({
   categoryId: z.string().min(1, "Choose a category"),
   tradeTypeIds: z.array(z.string()).default([]),
   origin: z.string().trim().max(120).optional().or(z.literal("")),
+  currency: z.string().trim().max(20).optional().default("USD"),
   unit: z.string().trim().max(40).optional().or(z.literal("")),
   price: z.coerce.number().nonnegative().optional().nullable(),
   status: z.enum(["DRAFT", "PUBLISHED", "ARCHIVED"]),
@@ -171,5 +172,47 @@ export const loginSchema = z.object({
   email: z.string().trim().toLowerCase().email(),
   password: z.string().min(6),
 });
+
+export const profileUpdateSchema = z.object({
+  name: z.string().trim().min(2, "Name must be at least 2 characters").max(120),
+  email: z.string().trim().toLowerCase().email("Enter a valid email address").max(160),
+});
+
+export const changePasswordSchema = z
+  .object({
+    currentPassword: z.string().min(1, "Enter your current password"),
+    newPassword: z.string().min(6, "New password must be at least 6 characters").max(128),
+    confirmPassword: z.string().min(1, "Please confirm your new password"),
+  })
+  .refine((data) => data.newPassword === data.confirmPassword, {
+    message: "New passwords do not match",
+    path: ["confirmPassword"],
+  });
+
+export const createAdminSchema = z
+  .object({
+    name: z.string().trim().min(2, "Name must be at least 2 characters").max(120),
+    email: z.string().trim().toLowerCase().email("Enter a valid email address").max(160),
+    password: z.string().min(6, "Password must be at least 6 characters").max(128),
+    confirmPassword: z.string().min(1, "Please confirm the password"),
+    isActive: z.boolean().default(true),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords do not match",
+    path: ["confirmPassword"],
+  });
+
+export const updateAdminSchema = z
+  .object({
+    id: z.string().min(1, "Missing account id"),
+    name: z.string().trim().min(2, "Name must be at least 2 characters").max(120),
+    email: z.string().trim().toLowerCase().email("Enter a valid email address").max(160),
+    password: z.string().max(128).optional().or(z.literal("")),
+    isActive: z.boolean().default(true),
+  })
+  .refine((data) => !data.password || data.password.length >= 6, {
+    message: "New password must be at least 6 characters",
+    path: ["password"],
+  });
 
 export const inquiryStatusSchema = z.enum(["NEW", "IN_PROGRESS", "RESOLVED", "ARCHIVED"]);

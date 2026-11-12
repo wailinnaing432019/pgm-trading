@@ -12,6 +12,7 @@ export type ProductWithCategory = Omit<Product, "price"> & {
 
 export function ProductCard({ product }: { product: ProductWithCategory }) {
   const tradeLabels = product.tradeTypes.map((t) => t.tradeType.label);
+  const currency = ((product.specs as Record<string, unknown>)?.currency as string) || "USD";
 
   return (
     <Link
@@ -54,7 +55,7 @@ export function ProductCard({ product }: { product: ProductWithCategory }) {
             </p>
             {product.price !== null ? (
               <p className="font-serif text-xl font-semibold text-forest-900">
-                USD {product.price.toLocaleString()}
+                {currency} {product.price.toLocaleString()}
               </p>
             ) : (
               <p className="font-serif text-base font-semibold text-forest-900">On request</p>

@@ -31,13 +31,16 @@ export function SearchBox({
   }, [value, searchParams, router, basePath]);
 
   return (
-    <div className="relative w-full max-w-xs">
-      <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-forest-700/50" aria-hidden />
+    <div className="relative w-full sm:max-w-xs md:max-w-sm">
+      <Search
+        className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-forest-700/50"
+        aria-hidden
+      />
       <input
         value={value}
         onChange={(event) => setValue(event.target.value)}
         placeholder={placeholder}
-        className="input-admin h-10 w-full pl-10 pr-9"
+        className="h-10 w-full rounded-xl border border-sand-300 bg-white/95 !pl-10 !pr-9 text-sm text-forest-950 placeholder:text-forest-700/50 shadow-xs transition-all focus:border-forest-600 focus:bg-white focus:outline-none focus:ring-2 focus:ring-forest-600/20"
         aria-label={placeholder}
       />
       {value ? (
@@ -46,6 +49,7 @@ export function SearchBox({
           onClick={() => setValue("")}
           className="absolute right-2.5 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full text-forest-700/60 transition-colors hover:bg-forest-100 hover:text-forest-900"
           aria-label="Clear search"
+          title="Clear search"
         >
           <X className="h-3.5 w-3.5" aria-hidden />
         </button>

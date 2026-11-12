@@ -1,6 +1,43 @@
 @import "tailwindcss";
 
 /* ============================================================================
+   Official Myanmar Pyidaungsu Fonts
+   Regular, Bold, and Numbers with OpenType GSUB/GPOS Ligature Shaping
+   ========================================================================== */
+
+@font-face {
+  font-family: "Pyidaungsu";
+  src:
+    local("Pyidaungsu"),
+    local("Pyidaungsu Regular"),
+    url("/fonts/Pyidaungsu-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Pyidaungsu";
+  src:
+    local("Pyidaungsu-Bold"),
+    local("Pyidaungsu Bold"),
+    url("/fonts/Pyidaungsu-Bold.ttf") format("truetype");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Pyidaungsu-Numbers";
+  src:
+    local("Pyidaungsu-Numbers"),
+    url("/fonts/Pyidaungsu-Numbers.ttf") format("truetype");
+  font-weight: 400 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* ============================================================================
    PGM Trading — Design System (Tailwind CSS v4)
    Theme: Agricultural, Earthy, Professional, Modern Trade & Logistics
    ========================================================================== */
@@ -68,10 +105,10 @@
   --color-border: var(--color-sand-200);
   --color-ring: var(--color-gold-400);
 
-  /* Typography */
-  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
-  --font-serif: var(--font-geist-serif), ui-serif, Georgia, serif;
-  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+  /* Typography with official Myanmar Pyidaungsu Unicode support */
+  --font-sans: var(--font-geist-sans), "Pyidaungsu", "Pyidaungsu-Numbers", "Noto Sans Myanmar", "Myanmar3", "Padauk", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-geist-serif), "Pyidaungsu", "Pyidaungsu-Numbers", "Noto Serif Myanmar", "Myanmar3", "Padauk", ui-serif, Georgia, serif;
+  --font-mono: var(--font-geist-mono), "Pyidaungsu", "Pyidaungsu-Numbers", ui-monospace, monospace;
 
   /* Motion */
   --animate-fade-up: fade-up 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
@@ -159,6 +196,18 @@
     color: var(--color-foreground);
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
+    font-feature-settings: "liga" 1, "kern" 1, "ccmp" 1, "locl" 1;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Form inputs & controls inherit full Myanmar ligature support */
+  input,
+  textarea,
+  select,
+  button {
+    font-family: inherit;
+    font-feature-settings: "liga" 1, "kern" 1, "ccmp" 1, "locl" 1;
+    text-rendering: optimizeLegibility;
   }
 
   h1,
@@ -184,7 +233,9 @@
 
   /* Styles for CMS rich-text (blog body, page sections) */
   .rich-text {
-    @apply text-base leading-relaxed text-forest-800/85;
+    @apply text-base text-forest-800/85;
+    font-family: var(--font-sans);
+    line-height: 1.8;
   }
   .rich-text h2 {
     @apply mt-8 mb-3 font-serif text-2xl font-semibold text-forest-950;
@@ -261,10 +312,10 @@
   }
 
   /* Admin form inputs */
-  input.input-admin,
-  textarea.input-admin,
-  select.input-admin {
-    @apply w-full rounded-xl border border-sand-200 bg-cream px-4 py-3 text-sm text-forest-950 placeholder:text-forest-700/40 focus:border-forest-500 focus:outline-none focus:ring-2 focus:ring-forest-500/30;
+  .input-admin {
+    @apply w-full rounded-xl border border-sand-200 bg-cream px-4 py-2.5 text-sm text-forest-950 placeholder:text-forest-700/40 focus:border-forest-500 focus:outline-none focus:ring-2 focus:ring-forest-500/30;
+    font-family: var(--font-sans);
+    line-height: 1.5;
   }
 }
 

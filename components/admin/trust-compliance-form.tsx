@@ -9,6 +9,7 @@ import {
   ChevronDown,
   CheckCircle2,
   Languages,
+  Pencil,
 } from "lucide-react";
 import type { PageSection } from "@prisma/client";
 import { submitPageSection } from "@/lib/actions/admin";
@@ -222,10 +223,24 @@ export function TrustComplianceForm({
           </div>
         </div>
 
-        <ChevronDown
-          className={cn("h-4 w-4 text-forest-700/60 transition-transform duration-200", isExpanded && "rotate-180")}
-          aria-hidden
-        />
+        <span
+          className={cn(
+            "inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors",
+            isExpanded
+              ? "bg-forest-700 text-cream"
+              : "border border-sand-200 bg-white text-forest-800"
+          )}
+        >
+          {!isExpanded ? <Pencil className="h-3 w-3" aria-hidden /> : null}
+          <span className="hidden sm:inline">{isExpanded ? "Editing" : "Edit"}</span>
+          <ChevronDown
+            className={cn(
+              "h-3.5 w-3.5 transition-transform duration-200",
+              isExpanded && "rotate-180"
+            )}
+            aria-hidden
+          />
+        </span>
       </button>
 
       {isExpanded && (
@@ -291,7 +306,7 @@ export function TrustComplianceForm({
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
               <label className="mb-1.5 block text-xs font-semibold text-forest-900">
-                Eyebrow / Sub-headline
+                Small tag above heading
               </label>
               <input
                 name="subtitle"
@@ -303,7 +318,7 @@ export function TrustComplianceForm({
             </div>
             <div>
               <label className="mb-1.5 block text-xs font-semibold text-forest-900">
-                Main Headline
+                Main heading
               </label>
               <input
                 name="title"
@@ -315,7 +330,7 @@ export function TrustComplianceForm({
             </div>
             <div className="sm:col-span-2">
               <label className="mb-1.5 block text-xs font-semibold text-forest-900">
-                Section Description Copy
+                Supporting description
               </label>
               <textarea
                 name="body"

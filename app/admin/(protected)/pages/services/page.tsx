@@ -1,9 +1,16 @@
-import { getAdminSections, getAdminServices, getAdminChecklist } from "@/lib/queries";
+import { Briefcase, CheckSquare, LayoutTemplate } from "lucide-react";
+import { getAdminChecklist, getAdminSections, getAdminServices } from "@/lib/queries";
 import { SectionForm } from "@/components/admin/section-form";
 import { CollectionSection } from "@/components/admin/collection-section";
 import { IconSelect } from "@/components/admin/icon-select";
-import { submitService, submitChecklistItem, deleteChecklistItem, deleteService } from "@/lib/actions/admin";
+import {
+  saveService,
+  deleteService,
+  saveChecklistItem,
+  deleteChecklistItem,
+} from "@/lib/actions/admin";
 import { PageEditor } from "@/components/admin/page-editor";
+import { PageGroup } from "@/components/admin/page-group";
 
 export default async function AdminPagesServices() {
   const [sections, services, capabilities] = await Promise.all([
@@ -13,28 +20,46 @@ export default async function AdminPagesServices() {
   ]);
 
   const outline = [
-    { id: "section-hero", label: "Hero banner", configured: Boolean(sections.hero) },
-    { id: "section-servicesHeading", label: "Services grid heading", configured: Boolean(sections.servicesHeading) },
-    { id: "collection-services-catalog", label: "Services catalog", configured: services.length > 0, count: services.length },
-    { id: "section-capabilitiesHeading", label: "Capabilities heading", configured: Boolean(sections.capabilitiesHeading) },
-    { id: "collection-capabilities-checklist", label: "Capabilities checklist", configured: capabilities.length > 0, count: capabilities.length },
-    { id: "section-quote", label: "Service highlight quote", configured: Boolean(sections.quote) },
+    { id: "section-hero", label: "Top banner", configured: Boolean(sections.hero) },
+    {
+      id: "section-servicesHeading",
+      label: "Services heading",
+      configured: Boolean(sections.servicesHeading),
+    },
+    {
+      id: "collection-services-catalog",
+      label: "Service cards",
+      configured: services.length > 0,
+      count: services.length,
+    },
+    {
+      id: "section-capabilitiesHeading",
+      label: "Capabilities heading",
+      configured: Boolean(sections.capabilitiesHeading),
+    },
+    {
+      id: "collection-capabilities-checklist",
+      label: "Capabilities checklist",
+      configured: capabilities.length > 0,
+      count: capabilities.length,
+    },
+    { id: "section-quote", label: "Logistics quote", configured: Boolean(sections.quote) },
   ];
 
   return (
     <PageEditor items={outline}>
-      <div className="space-y-12">
-      {/* 1. Hero & Header */}
-      <section className="space-y-6">
-        <div className="border-b border-sand-200/80 pb-2">
-          <h2 className="font-serif text-lg font-semibold text-forest-950">Hero & Header</h2>
-          <p className="text-xs text-forest-700/70">Top banner and introduction for our logistics and trading services</p>
-        </div>
-
-        <div className="grid gap-6">
+      <div className="space-y-10">
+        {/* 1. Top Banner & Intro */}
+        <PageGroup
+          step={1}
+          title="Page Banner & Services Intro"
+          description="The opening dark banner at the top of Services, plus the heading above your service cards."
+          icon={<LayoutTemplate className="h-5 w-5" aria-hidden />}
+          badge="Top of Services Page"
+        >
           <SectionForm
-            label="Hero Banner"
-            description="Cover image, main headline and intro copy at the very top of the Services page."
+            label="Top Hero Banner"
+            description="Cover background photo, main headline, and intro sentence for the Services page."
             page="services"
             sectionKey="hero"
             fields={["title", "subtitle", "body", "image"]}
@@ -42,59 +67,77 @@ export default async function AdminPagesServices() {
           />
 
           <SectionForm
-            label="Services Grid Heading"
-            description="Heading and intro text introducing the services catalog on both Home and Services pages."
+            label="Services Section Heading"
+            description="Heading shown above your service cards on the Services page (Homepage uses Home Page -> Services Section Heading)."
             page="services"
             sectionKey="servicesHeading"
             fields={["title", "subtitle", "body"]}
             section={sections.servicesHeading ?? null}
           />
-        </div>
-      </section>
+        </PageGroup>
 
-      {/* 2. Services Catalog */}
-      <section className="space-y-6">
-        <div className="border-b border-sand-200/80 pb-2">
-          <h2 className="font-serif text-lg font-semibold text-forest-950">Service Offerings</h2>
-          <p className="text-xs text-forest-700/70">Individual solutions shown across Home and Services pages</p>
-        </div>
-
-        <CollectionSection
-          title="Services Catalog"
-          description="Detailed service cards (Cold Storage, Contract Farming, Export Brokerage, Farm Inputs, etc.)."
-          items={services}
-          saveAction={submitService}
-          deleteAction={deleteService}
-          addLabel="Add service"
-          renderItem={(item) => (
-            <>
-              <div className="grid gap-4 sm:grid-cols-[1fr_220px]">
-                <div>
-                  <label className="mb-1.5 block text-sm font-medium text-forest-900">Service Title</label>
-                  <input name="title" defaultValue={item?.title ?? ""} placeholder="e.g. Cold Chain Storage & Warehousing" className="input-admin" />
+        {/* 2. Service Offerings */}
+        <PageGroup
+          step={2}
+          title="Service Offerings"
+          description="The core services you provide to farmers and international buyers."
+          icon={<Briefcase className="h-5 w-5" aria-hidden />}
+          badge="Home & Services Pages"
+        >
+          <CollectionSection
+            title="Services Catalog"
+            description="Each card below appears on both the Home and Services pages. Use the arrows to change their display order."
+            items={services}
+            collectionKind="service"
+            saveAction={saveService}
+            deleteAction={deleteService}
+            addLabel="Add service"
+            renderItem={(item) => (
+              <>
+                <div className="grid gap-4 sm:grid-cols-[1fr_220px]">
+                  <div>
+                    <label className="mb-1.5 block text-sm font-medium text-forest-900">
+                      Service Title *
+                    </label>
+                    <input
+                      name="title"
+                      required
+                      defaultValue={item?.title ?? ""}
+                      placeholder="e.g. Cold-Chain Distribution"
+                      className="input-admin"
+                    />
+                  </div>
+                  <IconSelect name="icon" value={item?.icon ?? null} />
                 </div>
-                <IconSelect name="icon" value={item?.icon ?? null} />
-              </div>
-              <div>
-                <label className="mb-1.5 block text-sm font-medium text-forest-900">Service Description</label>
-                <textarea name="description" rows={3} defaultValue={item?.description ?? ""} placeholder="Comprehensive overview of this service…" className="input-admin" />
-              </div>
-            </>
-          )}
-        />
-      </section>
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-forest-900">
+                    Service Description *
+                  </label>
+                  <textarea
+                    name="description"
+                    required
+                    rows={3}
+                    defaultValue={item?.description ?? ""}
+                    placeholder="Explain how this service helps buyers or growers…"
+                    className="input-admin"
+                  />
+                </div>
+              </>
+            )}
+          />
+        </PageGroup>
 
-      {/* 3. Capabilities & Highlight Quote */}
-      <section className="space-y-6">
-        <div className="border-b border-sand-200/80 pb-2">
-          <h2 className="font-serif text-lg font-semibold text-forest-950">Operational Capabilities & Quote</h2>
-          <p className="text-xs text-forest-700/70">Detailed checklist of our supply chain capabilities and featured client quote</p>
-        </div>
-
-        <div className="grid gap-6">
+        {/* 3. Shipment Capabilities & Quote */}
+        <PageGroup
+          step={3}
+          title="Shipment Checklist & Highlight Quote"
+          description="Show what is included with every order alongside a quote from your logistics team."
+          icon={<CheckSquare className="h-5 w-5" aria-hidden />}
+          badge="Middle of Services Page"
+        >
           <SectionForm
             label="Capabilities Heading"
-            description="Heading copy introducing our operational infrastructure and compliance checklist."
+            description="Title and short intro beside your included shipment checklist."
             page="services"
             sectionKey="capabilitiesHeading"
             fields={["title", "subtitle", "body"]}
@@ -103,30 +146,38 @@ export default async function AdminPagesServices() {
 
           <CollectionSection
             title="Capabilities Checklist"
-            description="The checkmark points in the grey capabilities band."
+            description="Displayed as two columns of check-arrow points next to the highlight quote."
             items={capabilities}
-            saveAction={submitChecklistItem}
+            collectionKind="checklistItem"
+            saveAction={saveChecklistItem}
             deleteAction={deleteChecklistItem}
             addLabel="Add capability"
             renderItem={(item) => (
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-forest-900">Capability Item</label>
-                <input name="title" defaultValue={item?.title ?? ""} placeholder="e.g. Customs brokerage & export documentation" className="input-admin" />
+                <label className="mb-1.5 block text-sm font-medium text-forest-900">
+                  Capability Point *
+                </label>
+                <input
+                  name="title"
+                  required
+                  defaultValue={item?.title ?? ""}
+                  placeholder="e.g. Customs brokerage & export documentation"
+                  className="input-admin"
+                />
                 <input type="hidden" name="group" value="capabilities" />
               </div>
             )}
           />
 
           <SectionForm
-            label="Service Highlight Quote"
-            description="The highlighted quote text and attribution in the grey band."
+            label="Logistics Highlight Quote"
+            description="The warm gradient quote box displayed beside the capabilities checklist."
             page="services"
             sectionKey="quote"
             fields={["title", "subtitle"]}
             section={sections.quote ?? null}
           />
-        </div>
-      </section>
+        </PageGroup>
       </div>
     </PageEditor>
   );

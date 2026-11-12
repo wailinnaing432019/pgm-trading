@@ -1,40 +1,68 @@
+import { BookHeart, Boxes, Megaphone, Route, Sparkles } from "lucide-react";
 import { getAdminSections, getAdminSupplySteps, getAllStats } from "@/lib/queries";
 import { SectionForm } from "@/components/admin/section-form";
 import { CollectionSection } from "@/components/admin/collection-section";
 import { IconSelect } from "@/components/admin/icon-select";
-import { submitStat, deleteStat, submitSupplyStep, deleteSupplyStep } from "@/lib/actions/admin";
+import { saveStat, deleteStat, saveSupplyStep, deleteSupplyStep } from "@/lib/actions/admin";
 import { PageEditor } from "@/components/admin/page-editor";
+import { PageGroup } from "@/components/admin/page-group";
 
 export default async function AdminPagesHome() {
-  const [sections, steps, stats] = await Promise.all([getAdminSections("home"), getAdminSupplySteps(), getAllStats()]);
+  const [sections, steps, stats] = await Promise.all([
+    getAdminSections("home"),
+    getAdminSupplySteps(),
+    getAllStats(),
+  ]);
 
   const outline = [
-    { id: "section-hero", label: "Hero banner", configured: Boolean(sections.hero) },
-    { id: "collection-animated-statistics", label: "Animated statistics", configured: stats.length > 0, count: stats.length },
-    { id: "section-story", label: "Story band", configured: Boolean(sections.story) },
+    { id: "section-hero", label: "Welcome banner", configured: Boolean(sections.hero) },
+    {
+      id: "collection-key-numbers",
+      label: "Key numbers",
+      configured: stats.length > 0,
+      count: stats.length,
+    },
+    { id: "section-story", label: "Company story", configured: Boolean(sections.story) },
     { id: "section-storyQuote", label: "Leadership quote", configured: Boolean(sections.storyQuote) },
-    { id: "section-servicesHeading", label: "Services heading", configured: Boolean(sections.servicesHeading) },
-    { id: "section-productHeading", label: "Featured products heading", configured: Boolean(sections.productHeading) },
-    { id: "section-supplyChain", label: "Supply chain heading", configured: Boolean(sections.supplyChain) },
-    { id: "collection-supply-chain-steps", label: "Supply chain steps", configured: steps.length > 0, count: steps.length },
+    {
+      id: "section-servicesHeading",
+      label: "Services heading",
+      configured: Boolean(sections.servicesHeading),
+    },
+    {
+      id: "section-productHeading",
+      label: "Products heading",
+      configured: Boolean(sections.productHeading),
+    },
+    {
+      id: "section-supplyChain",
+      label: "Supply chain heading",
+      configured: Boolean(sections.supplyChain),
+    },
+    {
+      id: "collection-supply-chain-steps",
+      label: "Supply chain steps",
+      configured: steps.length > 0,
+      count: steps.length,
+    },
     { id: "section-newsHeading", label: "News heading", configured: Boolean(sections.newsHeading) },
-    { id: "section-cta", label: "Call-to-action band", configured: Boolean(sections.cta) },
+    { id: "section-cta", label: "Bottom invitation banner", configured: Boolean(sections.cta) },
   ];
 
   return (
     <PageEditor items={outline}>
-      <div className="space-y-12">
-      {/* 1. Hero & Introduction */}
-      <section className="space-y-6">
-        <div className="border-b border-sand-200/80 pb-2">
-          <h2 className="font-serif text-lg font-semibold text-forest-950">Hero & Statistics</h2>
-          <p className="text-xs text-forest-700/70">Top impressions, main banner and key animated business metrics</p>
-        </div>
-
-        <div className="grid gap-6">
+      <div className="space-y-10">
+        {/* 1. Welcome Banner & Statistics */}
+        <PageGroup
+          step={1}
+          title="First Impression & Key Numbers"
+          description="The very first banner visitors see when opening the site, plus the 4 animated statistics bar."
+          icon={<Sparkles className="h-5 w-5" aria-hidden />}
+          badge="Top of Homepage"
+        >
           <SectionForm
-            label="Hero Banner"
-            description="Headline, sub-headline and optional cover image at the very top of the homepage."
+            label="Welcome Hero Banner"
+            description="Main welcome headline, short intro sentence, and optional background photo."
             page="home"
             sectionKey="hero"
             fields={["title", "subtitle", "image"]}
@@ -42,43 +70,68 @@ export default async function AdminPagesHome() {
           />
 
           <CollectionSection
-            title="Animated Statistics"
-            description="The counting numbers in the dark band directly below the hero banner."
+            title="Key Numbers"
+            description="The highlight numbers shown in the dark bar right below the welcome banner (e.g. Tons Exported, Partner Countries)."
             items={stats}
-            saveAction={submitStat}
+            collectionKind="stat"
+            saveAction={saveStat}
             deleteAction={deleteStat}
-            addLabel="Add stat"
+            addLabel="Add number"
             renderItem={(item) => (
               <div className="grid gap-4 sm:grid-cols-[1fr_140px_120px]">
                 <div>
-                  <label className="mb-1.5 block text-sm font-medium text-forest-900">Label</label>
-                  <input name="label" defaultValue={item?.label ?? ""} placeholder="Tons Exported" className="input-admin" />
+                  <label className="mb-1.5 block text-sm font-medium text-forest-900">
+                    Label *
+                  </label>
+                  <input
+                    name="label"
+                    required
+                    defaultValue={item?.label ?? ""}
+                    placeholder="e.g. Tons Exported"
+                    className="input-admin"
+                  />
                 </div>
                 <div>
-                  <label className="mb-1.5 block text-sm font-medium text-forest-900">Value (Number)</label>
-                  <input name="value" type="number" defaultValue={item?.value ?? ""} className="input-admin" />
+                  <label className="mb-1.5 block text-sm font-medium text-forest-900">
+                    Number *
+                  </label>
+                  <input
+                    name="value"
+                    type="number"
+                    required
+                    min={0}
+                    defaultValue={item?.value ?? ""}
+                    placeholder="480000"
+                    className="input-admin"
+                  />
                 </div>
                 <div>
-                  <label className="mb-1.5 block text-sm font-medium text-forest-900">Suffix</label>
-                  <input name="suffix" defaultValue={item?.suffix ?? "+"} placeholder="+, k MT" className="input-admin" />
+                  <label className="mb-1.5 block text-sm font-medium text-forest-900">
+                    Unit / Symbol
+                  </label>
+                  <input
+                    name="suffix"
+                    defaultValue={item?.suffix ?? "+"}
+                    placeholder="+, k MT"
+                    className="input-admin"
+                  />
                 </div>
               </div>
             )}
           />
-        </div>
-      </section>
+        </PageGroup>
 
-      {/* 2. Company Story & Managing Director Quote */}
-      <section className="space-y-6">
-        <div className="border-b border-sand-200/80 pb-2">
-          <h2 className="font-serif text-lg font-semibold text-forest-950">Company Story & Quote</h2>
-          <p className="text-xs text-forest-700/70">Short company mission narrative plus leadership statement</p>
-        </div>
-
-        <div className="grid gap-6">
+        {/* 2. Company Story & Leadership Quote */}
+        <PageGroup
+          step={2}
+          title="Company Story & Leadership Quote"
+          description="Share who PGM is alongside a featured quote from leadership."
+          icon={<BookHeart className="h-5 w-5" aria-hidden />}
+          badge="Middle of Homepage"
+        >
           <SectionForm
-            label="Story Band"
-            description="Company story overview text with optional featured cover image."
+            label="Our Story Band"
+            description="Company background headline, paragraph, and optional quote backdrop photo. Hidden on homepage until saved."
             page="home"
             sectionKey="story"
             fields={["title", "body", "image"]}
@@ -86,27 +139,26 @@ export default async function AdminPagesHome() {
           />
 
           <SectionForm
-            label="Leadership Quote"
-            description="Quote text (headline) and attribution / title (sub-headline)."
+            label="Leadership Quote Card"
+            description="The dark green quote box displayed beside your company story."
             page="home"
             sectionKey="storyQuote"
             fields={["title", "subtitle"]}
             section={sections.storyQuote ?? null}
           />
-        </div>
-      </section>
+        </PageGroup>
 
-      {/* 3. Catalog & Solutions Intros */}
-      <section className="space-y-6">
-        <div className="border-b border-sand-200/80 pb-2">
-          <h2 className="font-serif text-lg font-semibold text-forest-950">Services & Product Band Headings</h2>
-          <p className="text-xs text-forest-700/70">Introductory headers for the dynamic service cards and featured catalog grid</p>
-        </div>
-
-        <div className="grid gap-6">
+        {/* 3. Services & Featured Products Headings */}
+        <PageGroup
+          step={3}
+          title="Services & Products Headings"
+          description="Introductory titles shown above your service cards and featured commodity listings."
+          icon={<Boxes className="h-5 w-5" aria-hidden />}
+          badge="Section Titles"
+        >
           <SectionForm
-            label="Services Band Heading"
-            description="Heading and intro text introducing the services grid on the homepage."
+            label="Services Section Heading"
+            description="Heading and short intro displayed above your services on the homepage."
             page="home"
             sectionKey="servicesHeading"
             fields={["title", "subtitle", "body"]}
@@ -115,26 +167,25 @@ export default async function AdminPagesHome() {
 
           <SectionForm
             label="Featured Products Heading"
-            description="Heading and intro text introducing the featured export catalog items."
+            description="Heading and short intro displayed above featured products on the homepage."
             page="home"
             sectionKey="productHeading"
             fields={["title", "subtitle", "body"]}
             section={sections.productHeading ?? null}
           />
-        </div>
-      </section>
+        </PageGroup>
 
-      {/* 4. Supply Chain Band & Steps */}
-      <section className="space-y-6">
-        <div className="border-b border-sand-200/80 pb-2">
-          <h2 className="font-serif text-lg font-semibold text-forest-950">Supply Chain & Operations</h2>
-          <p className="text-xs text-forest-700/70">The dark band highlighting the four end-to-end supply chain steps</p>
-        </div>
-
-        <div className="grid gap-6">
+        {/* 4. Supply Chain & Operations */}
+        <PageGroup
+          step={4}
+          title="Supply Chain Process"
+          description="The dark section explaining how PGM moves produce from farms to global buyers."
+          icon={<Route className="h-5 w-5" aria-hidden />}
+          badge="Home & Services Pages"
+        >
           <SectionForm
             label="Supply Chain Heading"
-            description="Title, subtitle and overview for the supply chain process."
+            description="Heading and overview above the numbered supply chain steps."
             page="home"
             sectionKey="supplyChain"
             fields={["title", "subtitle", "body"]}
@@ -143,41 +194,58 @@ export default async function AdminPagesHome() {
 
           <CollectionSection
             title="Supply Chain Steps"
-            description="The four structured steps shown in the dark supply-chain band (Home & Services pages)."
+            description="Shown as numbered cards (01, 02, 03, 04) on both the Home and Services pages. Use the arrows to reorder steps."
             items={steps}
-            saveAction={submitSupplyStep}
+            collectionKind="supplyStep"
+            saveAction={saveSupplyStep}
             deleteAction={deleteSupplyStep}
             addLabel="Add step"
             renderItem={(item) => (
               <>
                 <div className="grid gap-4 sm:grid-cols-[1fr_220px]">
                   <div>
-                    <label className="mb-1.5 block text-sm font-medium text-forest-900">Step Title</label>
-                    <input name="title" defaultValue={item?.title ?? ""} placeholder="e.g. Sourcing & Origin Inspection" className="input-admin" />
+                    <label className="mb-1.5 block text-sm font-medium text-forest-900">
+                      Step Title *
+                    </label>
+                    <input
+                      name="title"
+                      required
+                      defaultValue={item?.title ?? ""}
+                      placeholder="e.g. Sourcing & Origin Inspection"
+                      className="input-admin"
+                    />
                   </div>
                   <IconSelect name="icon" value={item?.icon ?? null} />
                 </div>
                 <div>
-                  <label className="mb-1.5 block text-sm font-medium text-forest-900">Description</label>
-                  <textarea name="description" rows={3} defaultValue={item?.description ?? ""} placeholder="Details about this supply chain phase…" className="input-admin" />
+                  <label className="mb-1.5 block text-sm font-medium text-forest-900">
+                    Description *
+                  </label>
+                  <textarea
+                    name="description"
+                    required
+                    rows={3}
+                    defaultValue={item?.description ?? ""}
+                    placeholder="Briefly explain what happens in this step…"
+                    className="input-admin"
+                  />
                 </div>
               </>
             )}
           />
-        </div>
-      </section>
+        </PageGroup>
 
-      {/* 5. News & Conversion CTA */}
-      <section className="space-y-6">
-        <div className="border-b border-sand-200/80 pb-2">
-          <h2 className="font-serif text-lg font-semibold text-forest-950">News & Final Call-To-Action</h2>
-          <p className="text-xs text-forest-700/70">News band heading and the bottom conversion band</p>
-        </div>
-
-        <div className="grid gap-6">
+        {/* 5. News Heading & Bottom Invitation */}
+        <PageGroup
+          step={5}
+          title="News Intro & Contact Invitation"
+          description="The latest news heading and the final invitation banner encouraging buyers to contact you."
+          icon={<Megaphone className="h-5 w-5" aria-hidden />}
+          badge="Bottom of Homepage"
+        >
           <SectionForm
-            label="News Band Heading"
-            description="Heading and description shown above the latest articles and market insights."
+            label="Latest News Heading"
+            description="Heading and intro shown above the latest 3 articles on the homepage."
             page="home"
             sectionKey="newsHeading"
             fields={["title", "subtitle", "body"]}
@@ -185,15 +253,14 @@ export default async function AdminPagesHome() {
           />
 
           <SectionForm
-            label="Call-To-Action (CTA) Band"
-            description="The prominent invitation at the bottom of the page encouraging trade inquiries."
+            label="Bottom Invitation Banner"
+            description="The dark green call-to-action card with 'Start an Inquiry' and phone buttons (Home & Services)."
             page="home"
             sectionKey="cta"
             fields={["title", "subtitle"]}
             section={sections.cta ?? null}
           />
-        </div>
-      </section>
+        </PageGroup>
       </div>
     </PageEditor>
   );

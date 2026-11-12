@@ -3,6 +3,7 @@
 import { mkdir, writeFile } from "fs/promises";
 import path from "path";
 import { requireAdmin } from "@/lib/auth";
+import { deleteMediaFile, isMediaInUse } from "@/lib/media";
 
 const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
 const ALLOWED_EXTENSIONS = [".jpg", ".jpeg", ".png", ".webp", ".gif", ".avif"];
@@ -19,7 +20,9 @@ export async function uploadImage(formData: FormData): Promise<UploadResult> {
   if (file.size > MAX_IMAGE_BYTES) return { ok: false, error: "Image must be under 8 MB." };
 
   const ext = path.extname(file.name).toLowerCase();
-  if (!ALLOWED_EXTENSIONS.includes(ext)) return { ok: false, error: "Unsupported image type (use jpg, png, webp, gif or avif)." };
+  if (!ALLOWED_EXTENSIONS.includes(ext)) {
+    return { ok: false, error: "Unsupported image type (use jpg, png, webp, gif or avif)." };
+  }
 
   const fileName = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}${ext}`;
   const mediaDir = path.join(process.cwd(), "public", "media");
@@ -28,4 +31,21 @@ export async function uploadImage(formData: FormData): Promise<UploadResult> {
   await writeFile(path.join(mediaDir, fileName), Buffer.from(await file.arrayBuffer()));
 
   return { ok: true, url: `/media/${fileName}` };
+}
+
+/**
+ * Removes an unsaved uploaded image immediately when the user clicks 'X' in the upload form.
+ * If the image is already saved in the database, it is protected and will not be deleted until the form is saved.
+ */
+export async function deleteUploadedMediaAction(url: string): Promise<{ ok: boolean }> {
+  await requireAdmin();
+  if (!url || typeof url !== "string") return { ok: false };
+
+  // Only remove if it's not already committed to the database
+  const inUse = await isMediaInUse(url);
+  if (!inUse) {
+    await deleteMediaFile(url);
+    return { ok: true };
+  }
+  return { ok: false };
 }

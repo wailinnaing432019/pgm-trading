@@ -83,6 +83,19 @@ export async function destroySession(): Promise<void> {
   }
 }
 
+/** Revoke all other signed-in sessions for this user while keeping the current session active. */
+export async function revokeOtherSessions(userId: string): Promise<void> {
+  const cookieStore = await cookies();
+  const rawToken = cookieStore.get(SESSION_COOKIE)?.value;
+  const currentHash = rawToken ? hashToken(rawToken) : null;
+
+  await prisma.adminSession.deleteMany({
+    where: currentHash
+      ? { userId, token: { not: currentHash } }
+      : { userId },
+  });
+}
+
 export async function getSessionUser() {
   const cookieStore = await cookies();
   const rawToken = cookieStore.get(SESSION_COOKIE)?.value;

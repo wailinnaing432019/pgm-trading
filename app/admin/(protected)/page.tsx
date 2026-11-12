@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { getAdminStats, getAdminInquiries } from "@/lib/queries";
 import { formatDate } from "@/lib/utils";
+import { MediaCleanerCard } from "@/components/admin/media-cleaner-button";
 
 export default async function AdminOverviewPage() {
   const [stats, inquiries] = await Promise.all([getAdminStats(), getAdminInquiries("NEW")]);
@@ -92,6 +93,8 @@ export default async function AdminOverviewPage() {
           <p className="px-6 py-10 text-center text-sm text-forest-700/60">No new inquiries right now.</p>
         )}
       </div>
+
+      <MediaCleanerCard />
     </div>
   );
 }

@@ -11,7 +11,7 @@ export function NewsletterForm() {
 
   return (
     <div>
-      <form action={action} className="flex w-full max-w-md flex-col gap-3 sm:flex-row">
+      <form action={action} className="flex w-full max-w-md flex-col gap-3 sm:flex-row sm:items-center">
         <label className="sr-only" htmlFor="newsletter-email">
           Email address
         </label>
@@ -21,12 +21,12 @@ export function NewsletterForm() {
           name="email"
           required
           placeholder="you@company.com"
-          className="h-12 flex-1 rounded-full border border-cream/20 bg-forest-900/60 px-5 text-sm text-cream placeholder:text-cream/40 focus:border-gold-400 focus:outline-none focus:ring-2 focus:ring-gold-400/40"
+          className="h-12 w-full min-h-[48px] shrink-0 rounded-full border border-cream/20 bg-forest-900/60 px-5 text-sm text-cream placeholder:text-cream/40 focus:border-gold-400 focus:outline-none focus:ring-2 focus:ring-gold-400/40 sm:flex-1 appearance-none"
         />
         <button
           type="submit"
           disabled={pending}
-          className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-gold-500 px-6 text-sm font-semibold text-forest-950 transition-colors hover:bg-gold-400 disabled:opacity-60"
+          className="inline-flex h-12 w-full min-h-[48px] shrink-0 items-center justify-center gap-2 rounded-full bg-gold-500 px-6 text-sm font-semibold text-forest-950 transition-colors hover:bg-gold-400 disabled:opacity-60 sm:w-auto"
         >
           {pending ? (
             <Loader2 className="h-4 w-4 animate-spin" aria-hidden />

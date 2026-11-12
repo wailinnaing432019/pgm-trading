@@ -13,7 +13,12 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   return (
     <ToastProvider>
-      <AdminShell userName={user.name} userEmail={user.email} logo={settings.logo}>
+      <AdminShell
+        userName={user.name}
+        userEmail={user.email}
+        userRole={user.role}
+        logo={settings.logo}
+      >
         {children}
       </AdminShell>
       <AdminFlash key={flash?.nonce ?? "none"} flash={flash} />

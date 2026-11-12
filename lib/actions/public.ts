@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { inquirySchema, newsletterSchema } from "@/lib/validation";
 import { revalidatePath } from "next/cache";
+import { sendEmail, sendNewsletterWelcomeEmail } from "@/lib/email";
 
 export type ActionState = {
   ok: boolean;
@@ -33,27 +34,39 @@ async function notifyTradeDesk(inquiry: {
     }
   }
 
-  // 2. Email alert via Resend if configured
-  const resendKey = process.env.RESEND_API_KEY;
+  // 2. Email alert via Company Mail SMTP / Resend
   const tradeEmail = process.env.TRADE_DESK_EMAIL || "trade@pgm-trading.com";
-  if (resendKey) {
-    try {
-      await fetch("https://api.resend.com/emails", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${resendKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          from: "PGM Trade Desk <alerts@pgm-trading.com>",
-          to: [tradeEmail],
-          subject: `[Trade Desk Alert] ${inquiry.subject}`,
-          text: `New trade inquiry received from ${inquiry.name} (${inquiry.email}, Phone: ${inquiry.phone || "N/A"}):\n\n${inquiry.message}`,
-        }),
-      });
-    } catch (err) {
-      console.warn("[notifyTradeDesk] Email alert error:", err);
-    }
+  try {
+    const alertHtml = `
+      <h2>New Trade Inquiry / RFQ Received</h2>
+      <p><strong>From:</strong> ${inquiry.name} (${inquiry.email}${inquiry.phone ? ` &middot; Tel: ${inquiry.phone}` : ""})</p>
+      <p><strong>Subject:</strong> ${inquiry.subject}</p>
+      <hr style="border: 0; border-top: 1px solid #ebdfc9; margin: 16px 0;" />
+      <div style="white-space: pre-line; font-family: monospace; font-size: 13px; line-height: 1.6; background: #faf8f2; padding: 16px; border-radius: 8px;">
+        ${inquiry.message}
+      </div>
+    `;
+
+    const alertText = `
+New trade inquiry received:
+- Name: ${inquiry.name}
+- Email: ${inquiry.email}
+- Phone: ${inquiry.phone || "N/A"}
+- Subject: ${inquiry.subject}
+
+Message:
+${inquiry.message}
+    `.trim();
+
+    await sendEmail({
+      to: tradeEmail,
+      subject: `[Trade Desk Alert] ${inquiry.subject}`,
+      html: alertHtml,
+      text: alertText,
+      replyTo: inquiry.email,
+    });
+  } catch (err) {
+    console.warn("[notifyTradeDesk] Email alert error:", err);
   }
 }
 
@@ -142,15 +155,71 @@ export async function subscribeNewsletter(
     return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid email." };
   }
 
+  const email = parsed.data.email.trim().toLowerCase();
+
   try {
     await prisma.newsletter.upsert({
-      where: { email: parsed.data.email },
+      where: { email },
       update: { subscribed: true },
-      create: parsed.data,
+      create: { email, subscribed: true },
     });
+
+    // Send welcome email with anti-spam / unsubscribe notice in background
+    sendNewsletterWelcomeEmail(email).catch((err) => {
+      console.warn("[subscribeNewsletter] Welcome email error:", err);
+    });
+
     return { ok: true };
   } catch (error) {
     console.error("[subscribeNewsletter]", error);
     return { ok: false, error: "Could not subscribe right now. Please try again." };
+  }
+}
+
+export async function unsubscribeNewsletterAction(
+  _prevState: ActionState | null,
+  formData: FormData
+): Promise<ActionState> {
+  const email = formData.get("email")?.toString().trim().toLowerCase();
+  if (!email || !email.includes("@")) {
+    return { ok: false, error: "Please enter a valid email address." };
+  }
+
+  try {
+    await prisma.newsletter.updateMany({
+      where: { email },
+      data: { subscribed: false },
+    });
+    return { ok: true };
+  } catch (error) {
+    console.error("[unsubscribeNewsletterAction]", error);
+    return { ok: false, error: "Unable to process unsubscribe request right now." };
+  }
+}
+
+export async function resubscribeNewsletterAction(
+  _prevState: ActionState | null,
+  formData: FormData
+): Promise<ActionState> {
+  const email = formData.get("email")?.toString().trim().toLowerCase();
+  if (!email || !email.includes("@")) {
+    return { ok: false, error: "Please enter a valid email address." };
+  }
+
+  try {
+    await prisma.newsletter.upsert({
+      where: { email },
+      update: { subscribed: true },
+      create: { email, subscribed: true },
+    });
+
+    sendNewsletterWelcomeEmail(email).catch((err) => {
+      console.warn("[resubscribeNewsletterAction] Welcome email error:", err);
+    });
+
+    return { ok: true };
+  } catch (error) {
+    console.error("[resubscribeNewsletterAction]", error);
+    return { ok: false, error: "Unable to process subscription right now." };
   }
 }

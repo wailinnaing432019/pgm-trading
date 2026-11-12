@@ -5,12 +5,16 @@ import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { requireAdmin } from "@/lib/auth";
-import { createSession, destroySession } from "@/lib/auth";
+import { createSession, destroySession, requireAdmin, revokeOtherSessions } from "@/lib/auth";
 import { hashPassword, isLegacyPasswordHash, verifyPassword } from "@/lib/password";
 import { flashAdminToast, TOAST_COOKIE } from "@/lib/toast";
+import type { CollectionKind } from "@/lib/section-defaults";
 import {
   loginSchema,
+  profileUpdateSchema,
+  changePasswordSchema,
+  createAdminSchema,
+  updateAdminSchema,
   productSchema,
   categorySchema,
   tradeTypeSchema,
@@ -26,6 +30,19 @@ import {
   settingsSchema,
   inquiryStatusSchema,
 } from "@/lib/validation";
+import { normalizeMyanmarUnicode } from "@/lib/myanmar-unicode";
+import {
+  sendAdminCreatedNotification,
+  sendAdminUpdatedNotification,
+  sendNewsletterBroadcast,
+  type BroadcastProductItem,
+} from "@/lib/email";
+import {
+  deleteMediaFile,
+  deleteMediaFiles,
+  cleanupOrphanedEntityMedia,
+  cleanAllOrphanedMedia,
+} from "@/lib/media";
 
 export type AdminActionState = {
   ok: boolean;
@@ -119,13 +136,14 @@ export async function saveProduct(_prev: AdminActionState | null, formData: Form
 
   const parsed = productSchema.safeParse({
     id: formData.get("id") || undefined,
-    title: formData.get("title"),
-    summary: formData.get("summary"),
-    description: formData.get("description"),
+    title: normalizeMyanmarUnicode(String(formData.get("title") ?? "")),
+    summary: normalizeMyanmarUnicode(String(formData.get("summary") ?? "")),
+    description: normalizeMyanmarUnicode(String(formData.get("description") ?? "")),
     categoryId: formData.get("categoryId"),
     tradeTypeIds: formData.getAll("tradeTypeIds"),
-    origin: formData.get("origin"),
-    unit: formData.get("unit"),
+    origin: normalizeMyanmarUnicode(String(formData.get("origin") ?? "")),
+    currency: normalizeMyanmarUnicode(String(formData.get("currency") || "USD")),
+    unit: normalizeMyanmarUnicode(String(formData.get("unit") ?? "")),
     price: formData.get("price") || null,
     status: formData.get("status"),
     availability: formData.get("availability") || null,
@@ -138,7 +156,7 @@ export async function saveProduct(_prev: AdminActionState | null, formData: Form
     return { ok: false, fieldErrors: parsed.error.flatten().fieldErrors } satisfies AdminActionState;
   }
 
-  const { tradeTypeIds, id, ...rest } = parsed.data;
+  const { tradeTypeIds, id, currency, ...rest } = parsed.data;
 
   const category = await prisma.category.findUnique({
     where: { id: rest.categoryId },
@@ -167,12 +185,20 @@ export async function saveProduct(_prev: AdminActionState | null, formData: Form
     unit: nullableTrimmed(rest.unit),
     price: rest.price ?? null,
     availability: rest.availability ?? null,
-    specs: rest.specs as Prisma.InputJsonValue,
+    specs: {
+      ...(typeof rest.specs === "object" && rest.specs ? (rest.specs as Record<string, unknown>) : {}),
+      currency: currency || "USD",
+    } as Prisma.InputJsonValue,
     images: rest.images,
   };
 
   try {
     if (id) {
+      const existingProduct = await prisma.product.findUnique({
+        where: { id },
+        select: { images: true },
+      });
+
       await prisma.$transaction([
         prisma.product.update({ where: { id }, data }),
         prisma.productTradeType.deleteMany({ where: { productId: id } }),
@@ -180,6 +206,12 @@ export async function saveProduct(_prev: AdminActionState | null, formData: Form
           prisma.productTradeType.create({ data: { productId: id, tradeTypeId } })
         ),
       ]);
+
+      if (existingProduct?.images) {
+        cleanupOrphanedEntityMedia(existingProduct.images, data.images).catch((err) => {
+          console.warn("[saveProduct] media cleanup error:", err);
+        });
+      }
     } else {
       await prisma.product.create({
         data: {
@@ -210,8 +242,18 @@ export async function deleteProduct(formData: FormData) {
   const id = formData.get("id");
   if (typeof id !== "string") return;
 
+  const product = await prisma.product.findUnique({
+    where: { id },
+    select: { images: true },
+  });
+
   try {
     await prisma.product.delete({ where: { id } });
+    if (product?.images && product.images.length > 0) {
+      deleteMediaFiles(product.images).catch((err) => {
+        console.warn("[deleteProduct] media cleanup error:", err);
+      });
+    }
     await flashAdminToast({ type: "success", text: "Product deleted." });
   } catch (error) {
     console.error("[deleteProduct]", error);
@@ -284,8 +326,18 @@ export async function deleteCategory(formData: FormData) {
     return;
   }
 
+  const category = await prisma.category.findUnique({
+    where: { id },
+    select: { image: true },
+  });
+
   try {
     await prisma.category.delete({ where: { id } });
+    if (category?.image) {
+      deleteMediaFile(category.image).catch((err) => {
+        console.warn("[deleteCategory] media cleanup error:", err);
+      });
+    }
   } catch {
     await flashAdminToast({ type: "error", text: "Can't delete this category right now." });
     revalidateAdminContent();
@@ -443,13 +495,30 @@ export async function savePageSection(_prev: AdminActionState | null, formData: 
   };
 
   try {
+    let existingImage: string | null = null;
     if (id) {
+      const existing = await prisma.pageSection.findUnique({
+        where: { id },
+        select: { image: true },
+      });
+      existingImage = existing?.image ?? null;
       await prisma.pageSection.update({ where: { id }, data });
     } else {
+      const existing = await prisma.pageSection.findUnique({
+        where: { page_key: { page: data.page, key: data.key } },
+        select: { image: true },
+      });
+      existingImage = existing?.image ?? null;
       await prisma.pageSection.upsert({
         where: { page_key: { page: data.page, key: data.key } },
         update: data,
         create: data,
+      });
+    }
+
+    if (existingImage && existingImage !== data.image) {
+      deleteMediaFile(existingImage).catch((err) => {
+        console.warn("[savePageSection] media cleanup error:", err);
       });
     }
   } catch (error) {
@@ -537,7 +606,16 @@ export async function saveService(_prev: AdminActionState | null, formData: Form
   };
 
   if (id) {
+    const existing = await prisma.service.findUnique({
+      where: { id },
+      select: { image: true },
+    });
     await prisma.service.update({ where: { id }, data });
+    if (existing?.image && existing.image !== data.image) {
+      deleteMediaFile(existing.image).catch((err) => {
+        console.warn("[saveService] media cleanup error:", err);
+      });
+    }
   } else {
     await prisma.service.create({ data });
   }
@@ -552,7 +630,17 @@ export async function deleteService(formData: FormData) {
   const id = formData.get("id");
   if (typeof id !== "string") return;
 
+  const service = await prisma.service.findUnique({
+    where: { id },
+    select: { image: true },
+  });
+
   await prisma.service.delete({ where: { id } });
+  if (service?.image) {
+    deleteMediaFile(service.image).catch((err) => {
+      console.warn("[deleteService] media cleanup error:", err);
+    });
+  }
   await flashAdminToast({ type: "success", text: "Service deleted." });
   revalidateAdminContent();
 }
@@ -778,7 +866,16 @@ export async function saveMilestone(_prev: AdminActionState | null, formData: Fo
   };
 
   if (id) {
+    const existing = await prisma.milestone.findUnique({
+      where: { id },
+      select: { image: true },
+    });
     await prisma.milestone.update({ where: { id }, data });
+    if (existing?.image && existing.image !== data.image) {
+      deleteMediaFile(existing.image).catch((err) => {
+        console.warn("[saveMilestone] media cleanup error:", err);
+      });
+    }
   } else {
     await prisma.milestone.create({ data });
   }
@@ -793,7 +890,17 @@ export async function deleteMilestone(formData: FormData) {
   const id = formData.get("id");
   if (typeof id !== "string") return;
 
+  const milestone = await prisma.milestone.findUnique({
+    where: { id },
+    select: { image: true },
+  });
+
   await prisma.milestone.delete({ where: { id } });
+  if (milestone?.image) {
+    deleteMediaFile(milestone.image).catch((err) => {
+      console.warn("[deleteMilestone] media cleanup error:", err);
+    });
+  }
   await flashAdminToast({ type: "success", text: "Milestone deleted." });
   revalidateAdminContent();
 }
@@ -830,11 +937,23 @@ export async function saveSiteSettings(_prev: AdminActionState | null, formData:
     return { ok: false, fieldErrors: parsed.error.flatten().fieldErrors } satisfies AdminActionState;
   }
 
+  const existingSetting = await prisma.siteSetting.findUnique({
+    where: { id: 1 },
+    select: { meta: true },
+  });
+
   await prisma.siteSetting.upsert({
     where: { id: 1 },
     update: { meta: parsed.data as Prisma.InputJsonValue },
     create: { id: 1, meta: parsed.data as Prisma.InputJsonValue },
   });
+
+  const oldLogo = (existingSetting?.meta as Record<string, unknown> | null)?.logo;
+  if (typeof oldLogo === "string" && oldLogo && oldLogo !== parsed.data.logo) {
+    deleteMediaFile(oldLogo).catch((err) => {
+      console.warn("[saveSiteSettings] media cleanup error:", err);
+    });
+  }
 
   await flashAdminToast({ type: "success", text: "Site settings saved." });
   revalidateAdminContent();
@@ -881,7 +1000,20 @@ export async function saveBlog(_prev: AdminActionState | null, formData: FormDat
 
   try {
     if (id) {
+      const existing = await prisma.blog.findUnique({
+        where: { id },
+        select: { images: true, coverImage: true },
+      });
+
       await prisma.blog.update({ where: { id }, data });
+
+      if (existing) {
+        const oldImages = [...existing.images, existing.coverImage].filter(Boolean) as string[];
+        const newImages = [...data.images, data.coverImage].filter(Boolean) as string[];
+        cleanupOrphanedEntityMedia(oldImages, newImages).catch((err) => {
+          console.warn("[saveBlog] media cleanup error:", err);
+        });
+      }
     } else {
       await prisma.blog.create({ data: { ...data, authorId: user.id } });
     }
@@ -908,7 +1040,20 @@ export async function deleteBlog(formData: FormData) {
   const id = formData.get("id");
   if (typeof id !== "string") return;
 
+  const blog = await prisma.blog.findUnique({
+    where: { id },
+    select: { images: true, coverImage: true },
+  });
+
   await prisma.blog.delete({ where: { id } });
+  if (blog) {
+    const allImages = [...blog.images, blog.coverImage].filter(Boolean) as string[];
+    if (allImages.length > 0) {
+      deleteMediaFiles(allImages).catch((err) => {
+        console.warn("[deleteBlog] media cleanup error:", err);
+      });
+    }
+  }
   await flashAdminToast({ type: "success", text: "Article deleted." });
   revalidateAdminContent();
 }
@@ -944,4 +1089,535 @@ export async function deleteInquiry(formData: FormData) {
   await prisma.inquiry.delete({ where: { id } });
   await flashAdminToast({ type: "success", text: "Inquiry deleted." });
   revalidateAdminContent();
+}
+
+// ---------------------------------------------------------------------------
+// Admin: Profile & Password Management
+// ---------------------------------------------------------------------------
+
+export async function updateMyProfile(
+  _prev: AdminActionState | null,
+  formData: FormData
+): Promise<AdminActionState> {
+  const currentUser = await requireAdmin();
+
+  const parsed = profileUpdateSchema.safeParse({
+    name: formData.get("name"),
+    email: formData.get("email"),
+  });
+
+  if (!parsed.success) {
+    return {
+      ok: false,
+      fieldErrors: parsed.error.flatten().fieldErrors,
+    } satisfies AdminActionState;
+  }
+
+  try {
+    await prisma.user.update({
+      where: { id: currentUser.id },
+      data: {
+        name: parsed.data.name,
+        email: parsed.data.email,
+      },
+    });
+  } catch (error) {
+    if (isUniqueConstraintError(error)) {
+      return {
+        ok: false,
+        fieldErrors: { email: ["This email is already in use by another account."] },
+      } satisfies AdminActionState;
+    }
+    console.error("[updateMyProfile]", error);
+    return {
+      ok: false,
+      error: "Could not save your profile changes.",
+    } satisfies AdminActionState;
+  }
+
+  await flashAdminToast({ type: "success", text: "Profile details updated." });
+  revalidateAdminContent();
+  return { ok: true } satisfies AdminActionState;
+}
+
+export async function changeMyPassword(
+  _prev: AdminActionState | null,
+  formData: FormData
+): Promise<AdminActionState> {
+  const currentUser = await requireAdmin();
+
+  const parsed = changePasswordSchema.safeParse({
+    currentPassword: formData.get("currentPassword"),
+    newPassword: formData.get("newPassword"),
+    confirmPassword: formData.get("confirmPassword"),
+  });
+
+  if (!parsed.success) {
+    return {
+      ok: false,
+      fieldErrors: parsed.error.flatten().fieldErrors,
+    } satisfies AdminActionState;
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { id: currentUser.id },
+    select: { passwordHash: true },
+  });
+
+  if (!user || !verifyPassword(parsed.data.currentPassword, user.passwordHash)) {
+    return {
+      ok: false,
+      fieldErrors: { currentPassword: ["Current password is not correct."] },
+    } satisfies AdminActionState;
+  }
+
+  try {
+    await prisma.user.update({
+      where: { id: currentUser.id },
+      data: { passwordHash: hashPassword(parsed.data.newPassword) },
+    });
+    await revokeOtherSessions(currentUser.id);
+  } catch (error) {
+    console.error("[changeMyPassword]", error);
+    return {
+      ok: false,
+      error: "Could not update your password. Please try again.",
+    } satisfies AdminActionState;
+  }
+
+  await flashAdminToast({
+    type: "success",
+    text: "Password updated successfully. Other active sessions were signed out.",
+  });
+  revalidateAdminContent();
+  return { ok: true } satisfies AdminActionState;
+}
+
+// ---------------------------------------------------------------------------
+// Admin: Team & Account Management
+// ---------------------------------------------------------------------------
+
+export async function createAdminAccount(
+  _prev: AdminActionState | null,
+  formData: FormData
+): Promise<AdminActionState> {
+  const currentUser = await requireAdmin();
+
+  const parsed = createAdminSchema.safeParse({
+    name: formData.get("name"),
+    email: formData.get("email"),
+    password: formData.get("password"),
+    confirmPassword: formData.get("confirmPassword"),
+    isActive: formData.get("isActive") === "on",
+  });
+
+  if (!parsed.success) {
+    return {
+      ok: false,
+      fieldErrors: parsed.error.flatten().fieldErrors,
+    } satisfies AdminActionState;
+  }
+
+  let createdUser: { name: string; email: string; isActive: boolean };
+  try {
+    createdUser = await prisma.user.create({
+      data: {
+        name: parsed.data.name,
+        email: parsed.data.email,
+        passwordHash: hashPassword(parsed.data.password),
+        role: "ADMIN",
+        isActive: parsed.data.isActive,
+      },
+      select: {
+        name: true,
+        email: true,
+        isActive: true,
+      },
+    });
+  } catch (error) {
+    if (isUniqueConstraintError(error)) {
+      return {
+        ok: false,
+        fieldErrors: { email: ["An account with this email already exists."] },
+      } satisfies AdminActionState;
+    }
+    console.error("[createAdminAccount]", error);
+    return {
+      ok: false,
+      error: "Could not create admin account. Please try again.",
+    } satisfies AdminActionState;
+  }
+
+  // Welcome email with dynamic login link & creator attribution
+  sendAdminCreatedNotification({
+    admin: createdUser,
+    createdBy: {
+      name: currentUser.name || "Administrator",
+      email: currentUser.email,
+    },
+  }).catch((err) => {
+    console.error("[createAdminAccount] notification error:", err);
+  });
+
+  await flashAdminToast({ type: "success", text: "New admin account created." });
+  revalidateAdminContent();
+  return { ok: true } satisfies AdminActionState;
+}
+
+export async function updateAdminAccount(
+  _prev: AdminActionState | null,
+  formData: FormData
+): Promise<AdminActionState> {
+  const currentUser = await requireAdmin();
+
+  const parsed = updateAdminSchema.safeParse({
+    id: formData.get("id"),
+    name: formData.get("name"),
+    email: formData.get("email"),
+    password: formData.get("password") ?? "",
+    isActive: formData.get("isActive") === "on",
+  });
+
+  if (!parsed.success) {
+    return {
+      ok: false,
+      fieldErrors: parsed.error.flatten().fieldErrors,
+    } satisfies AdminActionState;
+  }
+
+  const target = await prisma.user.findUnique({
+    where: { id: parsed.data.id },
+    select: { id: true, role: true, name: true, email: true, isActive: true },
+  });
+
+  if (!target || target.role !== "ADMIN") {
+    return {
+      ok: false,
+      error: "Admin account not found or protected.",
+    } satisfies AdminActionState;
+  }
+
+  if (target.id === currentUser.id && !parsed.data.isActive) {
+    return {
+      ok: false,
+      error: "You cannot deactivate your own currently signed-in account.",
+    } satisfies AdminActionState;
+  }
+
+  const nextPassword = parsed.data.password?.trim();
+  const previousState = {
+    name: target.name,
+    email: target.email,
+    isActive: target.isActive,
+  };
+
+  try {
+    await prisma.user.update({
+      where: { id: target.id },
+      data: {
+        name: parsed.data.name,
+        email: parsed.data.email,
+        isActive: parsed.data.isActive,
+        ...(nextPassword ? { passwordHash: hashPassword(nextPassword) } : {}),
+      },
+    });
+
+    if (!parsed.data.isActive) {
+      await prisma.adminSession.deleteMany({ where: { userId: target.id } });
+    } else if (nextPassword) {
+      if (target.id === currentUser.id) {
+        await revokeOtherSessions(target.id);
+      } else {
+        await prisma.adminSession.deleteMany({ where: { userId: target.id } });
+      }
+    }
+  } catch (error) {
+    if (isUniqueConstraintError(error)) {
+      return {
+        ok: false,
+        fieldErrors: { email: ["This email is already used by another account."] },
+      } satisfies AdminActionState;
+    }
+    console.error("[updateAdminAccount]", error);
+    return {
+      ok: false,
+      error: "Could not save account changes. Please try again.",
+    } satisfies AdminActionState;
+  }
+
+  // Dual or single email dispatch depending on email modification
+  sendAdminUpdatedNotification({
+    changes: {
+      oldName: previousState.name,
+      newName: parsed.data.name,
+      oldEmail: previousState.email,
+      newEmail: parsed.data.email,
+      oldIsActive: previousState.isActive,
+      newIsActive: parsed.data.isActive,
+      passwordChanged: Boolean(nextPassword),
+    },
+    updatedBy: {
+      name: currentUser.name || "Administrator",
+      email: currentUser.email,
+    },
+  }).catch((err) => {
+    console.error("[updateAdminAccount] notification error:", err);
+  });
+
+  await flashAdminToast({ type: "success", text: "Admin account updated." });
+  revalidateAdminContent();
+  return { ok: true } satisfies AdminActionState;
+}
+
+export async function deleteAdminAccount(formData: FormData) {
+  const currentUser = await requireAdmin();
+  const id = formData.get("id");
+  if (typeof id !== "string" || !id) return;
+
+  const target = await prisma.user.findUnique({
+    where: { id },
+    select: { id: true, role: true },
+  });
+
+  if (!target || target.role !== "ADMIN") {
+    await flashAdminToast({
+      type: "error",
+      text: "This account is protected and cannot be deleted.",
+    });
+    revalidateAdminContent();
+    return;
+  }
+
+  if (target.id === currentUser.id) {
+    await flashAdminToast({
+      type: "error",
+      text: "You cannot delete the account you are currently signed in with.",
+    });
+    revalidateAdminContent();
+    return;
+  }
+
+  try {
+    await prisma.user.delete({ where: { id: target.id } });
+    await flashAdminToast({ type: "success", text: "Admin account deleted." });
+  } catch (error) {
+    console.error("[deleteAdminAccount]", error);
+    await flashAdminToast({
+      type: "error",
+      text: "Could not delete this admin account right now.",
+    });
+  }
+
+  revalidateAdminContent();
+}
+
+// ---------------------------------------------------------------------------
+// Admin: Newsletter Broadcast & Subscriber Management
+// ---------------------------------------------------------------------------
+
+export async function sendNewsletterBroadcastAction(
+  _prev: AdminActionState | null,
+  formData: FormData
+): Promise<AdminActionState> {
+  await requireAdmin();
+
+  const subject = String(formData.get("subject") ?? "").trim();
+  const headline = String(formData.get("headline") ?? "").trim();
+  const message = String(formData.get("message") ?? "").trim();
+  const productIds = formData.getAll("productIds").map(String).filter(Boolean);
+
+  if (!subject) {
+    return { ok: false, fieldErrors: { subject: ["Subject is required."] } };
+  }
+  if (!headline) {
+    return { ok: false, fieldErrors: { headline: ["Headline / Title is required."] } };
+  }
+  if (!message) {
+    return { ok: false, fieldErrors: { message: ["Message body is required."] } };
+  }
+
+  const subscribers = await prisma.newsletter.findMany({
+    where: { subscribed: true },
+    select: { email: true },
+  });
+
+  if (subscribers.length === 0) {
+    return {
+      ok: false,
+      error: "No active subscribers found to receive this broadcast.",
+    };
+  }
+
+  let products: BroadcastProductItem[] = [];
+  if (productIds.length > 0) {
+    const rawProducts = await prisma.product.findMany({
+      where: { id: { in: productIds } },
+      select: {
+        id: true,
+        title: true,
+        summary: true,
+        price: true,
+        unit: true,
+        specs: true,
+        images: true,
+      },
+    });
+
+    products = rawProducts.map((p) => {
+      const specs = p.specs && typeof p.specs === "object" ? (p.specs as Record<string, unknown>) : {};
+      const currency = typeof specs.currency === "string" ? specs.currency : "USD";
+      let image: string | null = null;
+      if (Array.isArray(p.images) && p.images.length > 0) {
+        const first = p.images[0];
+        if (typeof first === "string") image = first;
+      }
+      return {
+        id: p.id,
+        title: p.title,
+        summary: p.summary,
+        price: p.price ? Number(p.price) : null,
+        unit: p.unit,
+        currency,
+        image,
+      };
+    });
+  }
+
+  const result = await sendNewsletterBroadcast({
+    subject,
+    headline,
+    message,
+    products,
+    recipients: subscribers.map((s) => s.email),
+  });
+
+  await flashAdminToast({
+    type: "success",
+    text: `Broadcast sent to ${result.sent} subscribers${result.failed > 0 ? ` (${result.failed} failed)` : ""}.`,
+  });
+
+  revalidatePath("/admin/inquiries");
+  return { ok: true };
+}
+
+export async function toggleNewsletterSubscriber(formData: FormData) {
+  await requireAdmin();
+  const id = formData.get("id");
+  if (typeof id !== "string" || !id) return;
+
+  const sub = await prisma.newsletter.findUnique({ where: { id } });
+  if (!sub) return;
+
+  await prisma.newsletter.update({
+    where: { id },
+    data: { subscribed: !sub.subscribed },
+  });
+
+  await flashAdminToast({
+    type: "success",
+    text: `Subscriber marked as ${!sub.subscribed ? "Active" : "Unsubscribed"}.`,
+  });
+  revalidatePath("/admin/inquiries");
+}
+
+export async function deleteNewsletterSubscriber(formData: FormData) {
+  await requireAdmin();
+  const id = formData.get("id");
+  if (typeof id !== "string" || !id) return;
+
+  try {
+    await prisma.newsletter.delete({ where: { id } });
+    await flashAdminToast({ type: "success", text: "Subscriber removed." });
+  } catch (error) {
+    console.error("[deleteNewsletterSubscriber]", error);
+  }
+  revalidatePath("/admin/inquiries");
+}
+
+export async function moveCollectionItem(
+  kind: CollectionKind,
+  id: string,
+  direction: "up" | "down"
+) {
+  await requireAdmin();
+
+  type PositionItem = { id: string; position?: number; year?: number };
+  type ModelDelegate = {
+    findMany: (args?: unknown) => Promise<PositionItem[]>;
+    update: (args: { where: { id: string }; data: Record<string, unknown> }) => Promise<unknown>;
+  };
+
+  const delegates: Record<CollectionKind, ModelDelegate> = {
+    stat: prisma.stat as unknown as ModelDelegate,
+    service: prisma.service as unknown as ModelDelegate,
+    office: prisma.office as unknown as ModelDelegate,
+    value: prisma.companyValue as unknown as ModelDelegate,
+    supplyStep: prisma.supplyStep as unknown as ModelDelegate,
+    checklistItem: prisma.checklistItem as unknown as ModelDelegate,
+    milestone: prisma.milestone as unknown as ModelDelegate,
+  };
+
+  const delegate = delegates[kind];
+  if (!delegate) return;
+
+  const items = await delegate.findMany({
+    orderBy:
+      kind === "milestone"
+        ? [{ year: "asc" }, { id: "asc" }]
+        : [{ position: "asc" }, { id: "asc" }],
+  });
+
+  const currentIndex = items.findIndex((it) => it.id === id);
+  if (currentIndex === -1) return;
+  const targetIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1;
+  if (targetIndex < 0 || targetIndex >= items.length) return;
+
+  const currentItem = items[currentIndex];
+  const targetItem = items[targetIndex];
+
+  if (kind === "milestone") {
+    const currentYear = currentItem.year ?? 2020;
+    const targetYear = targetItem.year ?? 2020;
+    await delegate.update({ where: { id: currentItem.id }, data: { year: targetYear } });
+    await delegate.update({ where: { id: targetItem.id }, data: { year: currentYear } });
+  } else {
+    const currentPos = currentItem.position ?? currentIndex;
+    const targetPos = targetItem.position ?? targetIndex;
+    const newCurrentPos =
+      currentPos === targetPos
+        ? direction === "up"
+          ? targetPos - 1
+          : targetPos + 1
+        : targetPos;
+    await delegate.update({ where: { id: currentItem.id }, data: { position: newCurrentPos } });
+    await delegate.update({ where: { id: targetItem.id }, data: { position: currentPos } });
+  }
+
+  revalidateAdminContent();
+}
+
+/**
+ * Server Action to manually purge unreferenced media files from public/media/
+ * to free up cloud server storage.
+ */
+export async function cleanOrphanedMediaAction(): Promise<AdminActionState> {
+  await requireAdmin();
+
+  try {
+    const result = await cleanAllOrphanedMedia();
+    const mb = (result.freedBytes / (1024 * 1024)).toFixed(2);
+    await flashAdminToast({
+      type: "success",
+      text: `Cleaned ${result.deleted} orphaned file(s) and freed ${mb} MB of server storage.`,
+    });
+    revalidateAdminContent();
+    return { ok: true };
+  } catch (error) {
+    console.error("[cleanOrphanedMediaAction]", error);
+    await flashAdminToast({
+      type: "error",
+      text: "Could not complete media cleanup scan right now.",
+    });
+    return { ok: false, error: "Media cleanup failed." };
+  }
 }

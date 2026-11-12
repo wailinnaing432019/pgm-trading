@@ -542,3 +542,71 @@ export const getAdminInquiries = cache(async (status?: string) => {
     []
   );
 });
+
+/**
+ * Standard Admin accounts for Team/Admin management.
+ * SUPER_ADMIN accounts are intentionally excluded so they can never be
+ * viewed, edited, or deleted from the shared Admin management list.
+ */
+export const getAdminUsers = cache(async () => {
+  return safe(
+    () =>
+      prisma.user.findMany({
+        where: { role: "ADMIN" },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          role: true,
+          isActive: true,
+          createdAt: true,
+          updatedAt: true,
+          _count: { select: { blogs: true } },
+        },
+        orderBy: [{ createdAt: "asc" }],
+      }),
+    []
+  );
+});
+
+export const getAdminNewsletterSubscribers = cache(async () => {
+  return safe(
+    () =>
+      prisma.newsletter.findMany({
+        orderBy: { createdAt: "desc" },
+        take: 300,
+      }),
+    []
+  );
+});
+
+export const getAdminBroadcastProducts = cache(async () => {
+  return safe(
+    async () => {
+      const items = await prisma.product.findMany({
+        where: { status: "PUBLISHED" },
+        select: {
+          id: true,
+          title: true,
+          summary: true,
+          price: true,
+          unit: true,
+          specs: true,
+          images: true,
+        },
+        orderBy: { updatedAt: "desc" },
+        take: 50,
+      });
+      return items.map((p) => {
+        const specs = p.specs && typeof p.specs === "object" ? (p.specs as Record<string, unknown>) : {};
+        const currency = typeof specs.currency === "string" ? specs.currency : "USD";
+        return {
+          ...p,
+          price: p.price ? Number(p.price) : null,
+          currency,
+        };
+      });
+    },
+    []
+  );
+});

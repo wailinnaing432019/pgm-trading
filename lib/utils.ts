@@ -32,10 +32,12 @@ export function formatDate(date: Date | string | null | undefined, options?: Int
 
 export function formatSpecs(specs: Record<string, unknown>): { key: string; value: string }[] {
   if (!specs || typeof specs !== "object") return [];
-  return Object.entries(specs).map(([key, value]) => ({
-    key: key.replace(/([a-z])([A-Z])/g, "$1 $2").replace(/^./, (c) => c.toUpperCase()),
-    value: String(value),
-  }));
+  return Object.entries(specs)
+    .filter(([key]) => key.toLowerCase() !== "currency")
+    .map(([key, value]) => ({
+      key: key.replace(/([a-z])([A-Z])/g, "$1 $2").replace(/^./, (c) => c.toUpperCase()),
+      value: String(value),
+    }));
 }
 
 export function initials(name: string): string {

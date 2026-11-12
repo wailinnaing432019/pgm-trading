@@ -1,8 +1,8 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight, ImagePlus, Loader2, Star, X } from "lucide-react";
-import { uploadImage } from "@/lib/actions/upload";
+import { uploadImage, deleteUploadedMediaAction } from "@/lib/actions/upload";
 import { cn } from "@/lib/utils";
 
 type ImageUploaderProps = {
@@ -11,6 +11,7 @@ type ImageUploaderProps = {
   multiple?: boolean;
   initial?: string[];
   maxImages?: number;
+  onChange?: (urls: string[]) => void;
 };
 
 export function ImageUploader({
@@ -19,6 +20,7 @@ export function ImageUploader({
   multiple = false,
   initial = [],
   maxImages = 24,
+  onChange,
 }: ImageUploaderProps) {
   const [urls, setUrls] = useState<string[]>(initial);
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
@@ -27,11 +29,24 @@ export function ImageUploader({
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const prevUrlsRef = useRef(urls);
+
+  useEffect(() => {
+    if (prevUrlsRef.current === urls) return;
+    prevUrlsRef.current = urls;
+    onChange?.(urls);
+  }, [urls, onChange]);
 
   const uploading = progress !== null;
 
   function removeAt(index: number) {
+    const urlToRemove = urls[index];
     setUrls((prev) => prev.filter((_, i) => i !== index));
+    if (urlToRemove) {
+      deleteUploadedMediaAction(urlToRemove).catch((err) => {
+        console.warn("[image-uploader] Failed to clean up media:", err);
+      });
+    }
   }
 
   function moveItem(from: number, to: number) {

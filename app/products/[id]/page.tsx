@@ -10,11 +10,13 @@ import {
   Package,
   Scale,
   Send,
+  Share2,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { AssetImage } from "@/components/ui/asset-image";
 import { ProductCard } from "@/components/products/product-card";
+import { ProductShareBar } from "@/components/products/product-share-bar";
 import { WhatsAppIcon, ViberIcon } from "@/components/ui/trade-icons";
 import { getProductById, getProducts, getSiteSettings } from "@/lib/queries";
 import { formatSpecs } from "@/lib/utils";
@@ -51,13 +53,14 @@ export default async function ProductDetailPage({
 
   const related = await getProducts({ category: product.category?.slug, limit: 4 });
   const specs = formatSpecs(product.specs as Record<string, unknown>);
+  const currency = ((product.specs as Record<string, unknown>)?.currency as string) || "USD";
   const tradeLabels = product.tradeTypes.map((t) => t.tradeType.label);
   const whatsappUrl =
     whatsappHref(
       settings.whatsapp,
       `Hello PGM Trade Desk, I would like to request an official quote for ${
         product.title
-      } (Origin: ${product.origin ?? "Myanmar"}, Unit: ${product.unit ?? "MT"}).`
+      } (Origin: ${product.origin ?? "Myanmar"}, Price: ${currency} ${product.price?.toLocaleString() ?? "N/A"} / ${product.unit ?? "MT"}).`
     ) ?? "https://wa.me/959123456789";
   const viberUrl =
     viberHref(settings.viber || settings.phone) ??
@@ -110,7 +113,7 @@ export default async function ProductDetailPage({
                 <div className="rounded-2xl bg-forest-50 p-4">
                   <p className="text-xs font-semibold uppercase tracking-wider text-forest-700/60">Indicative price</p>
                   <p className="mt-1 font-serif text-xl font-semibold text-forest-950">
-                    USD {product.price.toLocaleString()}
+                    {currency} {product.price.toLocaleString()}
                     {product.unit ? <span className="text-sm font-normal text-forest-700/60"> / {product.unit}</span> : null}
                   </p>
                 </div>
@@ -162,6 +165,16 @@ export default async function ProductDetailPage({
                   <ViberIcon className="h-4 w-4" />
                   <span>Trade via Viber</span>
                 </a>
+              </div>
+
+              {/* Shareable Section */}
+              <div className="mt-3 rounded-2xl border border-sand-200/90 bg-sand-50/80 p-3.5">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                  <span className="text-xs font-semibold uppercase tracking-wider text-forest-700/80 flex items-center gap-1.5">
+                    <Share2 className="h-3.5 w-3.5 text-forest-600" /> Share Specs:
+                  </span>
+                  <ProductShareBar title={product.title} summary={product.summary} />
+                </div>
               </div>
             </div>
 
