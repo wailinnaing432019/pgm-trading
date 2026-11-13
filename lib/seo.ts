@@ -8,7 +8,7 @@ import type { Metadata } from "next";
  * has to think about SEO fields in the admin UI.
  */
 
-export const SITE_NAME = "PGM Trading";
+export const SITE_NAME = "Pacific Global Myanmar";
 export const SEO_TITLE_MAX = 60;
 export const SEO_DESCRIPTION_MAX = 160;
 
@@ -28,11 +28,11 @@ export function truncateAtWord(value: string, max: number): string {
   return base.replace(/[\s,;:.!?—–-]+$/, "");
 }
 
-/** Strip a duplicate "| PGM Trading" suffix, then size the title for Google. */
+/** Strip duplicate company suffix, then size the title for Google. */
 export function metaTitle(value: string): string {
   const cleaned = cleanMetadataText(value);
   const withoutSuffix = cleaned
-    .replace(/\s*(?:\||—|–|-)\s*PGM Trading\s*$/i, "")
+    .replace(/\s*(?:\||—|–|-)\s*(?:Pacific Global Myanmar|PGM Trading)\s*$/i, "")
     .trim();
   return truncateAtWord(withoutSuffix || cleaned, SEO_TITLE_MAX);
 }
@@ -54,6 +54,7 @@ export type PageMetadataInput = {
   noIndex?: boolean;
   publishedTime?: string;
   modifiedTime?: string;
+  canonical?: string;
 };
 
 export function pageMetadata({
@@ -65,6 +66,7 @@ export function pageMetadata({
   noIndex = false,
   publishedTime,
   modifiedTime,
+  canonical,
 }: PageMetadataInput): Metadata {
   const finalTitle = metaTitle(title);
   const finalDescription = metaDescription(description);
@@ -96,13 +98,13 @@ export function pageMetadata({
   return {
     title: finalTitle,
     ...(finalDescription ? { description: finalDescription } : {}),
-    alternates: { canonical: path },
+    alternates: { canonical: canonical ?? "./" },
     ...(noIndex ? { robots: { index: false, follow: true } } : {}),
     openGraph,
     ...(finalDescription
       ? {
           twitter: {
-            card: finalImage ? "summary_large_image" : "summary",
+            card: "summary_large_image",
             title: finalTitle,
             description: finalDescription,
             ...(finalImage ? { images: [finalImage] } : {}),

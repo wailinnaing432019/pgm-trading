@@ -9,6 +9,7 @@ type AssetImageProps = {
   /** Render as a fancy gradient panel when no image is available. */
   placeholderIcon?: "leaf" | "package" | "crop";
   priority?: boolean;
+  fetchPriority?: "high" | "low" | "auto";
   sizes?: string;
 };
 
@@ -24,6 +25,7 @@ export function AssetImage({
   className,
   placeholderIcon = "leaf",
   priority,
+  fetchPriority,
   sizes = "(min-width: 1024px) 33vw, 50vw",
 }: AssetImageProps) {
   if (!src) {
@@ -49,6 +51,7 @@ export function AssetImage({
       alt={alt}
       fill
       priority={priority}
+      {...(fetchPriority || priority ? { fetchPriority: fetchPriority ?? (priority ? "high" : undefined) } : {})}
       sizes={sizes}
       className={cn("object-cover", className)}
     />

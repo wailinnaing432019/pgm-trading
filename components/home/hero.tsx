@@ -15,7 +15,14 @@ export function Hero({ title, subtitle, image }: HeroProps) {
       <div className="absolute inset-0" aria-hidden>
         {image ? (
           <>
-            <AssetImage src={image} alt="" priority className="opacity-35" />
+            <AssetImage
+              src={image}
+              alt={title || "Pacific Global Myanmar Agricultural Export and Supply Chain"}
+              priority
+              fetchPriority="high"
+              sizes="100vw"
+              className="opacity-35"
+            />
             <div className="absolute inset-0 bg-gradient-to-br from-forest-950/80 via-forest-950/50 to-forest-900/60" />
           </>
         ) : (

@@ -67,27 +67,117 @@ export default async function ProductDetailPage({
     "viber://chat/?number=%2B959123456789";
   const rfqLink = `/contact?tab=rfq&subject=${encodeURIComponent(`${product.title} RFQ`)}`;
 
+  const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000").replace(/\/$/, "");
+  const productImage = product.images[0]
+    ? product.images[0].startsWith("http")
+      ? product.images[0]
+      : `${siteUrl}${product.images[0]}`
+    : undefined;
+
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Product",
+        "@id": `${siteUrl}/products/${product.id}#product`,
+        name: product.title,
+        description: product.summary || product.description,
+        image: productImage ? [productImage] : undefined,
+        category: product.category?.name,
+        brand: {
+          "@type": "Brand",
+          name: "Pacific Global Myanmar",
+        },
+        offers: {
+          "@type": "Offer",
+          priceCurrency: currency,
+          price: product.price ?? undefined,
+          availability:
+            (product.availability ?? 0) > 0
+              ? "https://schema.org/InStock"
+              : "https://schema.org/OutOfStock",
+          url: `${siteUrl}/products/${product.id}`,
+          seller: {
+            "@type": "Organization",
+            name: "Pacific Global Myanmar",
+          },
+        },
+      },
+      {
+        "@type": "BreadcrumbList",
+        "@id": `${siteUrl}/products/${product.id}#breadcrumb`,
+        itemListElement: [
+          {
+            "@type": "ListItem",
+            position: 1,
+            name: "Home",
+            item: `${siteUrl}/`,
+          },
+          {
+            "@type": "ListItem",
+            position: 2,
+            name: "Products",
+            item: `${siteUrl}/products`,
+          },
+          ...(product.category
+            ? [
+                {
+                  "@type": "ListItem",
+                  position: 3,
+                  name: product.category.name,
+                  item: `${siteUrl}/products?category=${product.category.slug}`,
+                },
+                {
+                  "@type": "ListItem",
+                  position: 4,
+                  name: product.title,
+                  item: `${siteUrl}/products/${product.id}`,
+                },
+              ]
+            : [
+                {
+                  "@type": "ListItem",
+                  position: 3,
+                  name: product.title,
+                  item: `${siteUrl}/products/${product.id}`,
+                },
+              ]),
+        ],
+      },
+    ],
+  };
+
   return (
     <main className="bg-cream">
-        {/* Breadcrumb */}
-        <div className="border-b border-sand-200 bg-sand-50">
-          <div className="section-container flex items-center gap-2 py-4 text-sm text-forest-700/70">
-            <Link href="/" className="transition-colors hover:text-forest-900">Home</Link>
-            <span aria-hidden>/</span>
-            <Link href="/products" className="transition-colors hover:text-forest-900">Products</Link>
-            <span aria-hidden>/</span>
-            <Link href={`/products?category=${product.category?.slug}`} className="transition-colors hover:text-forest-900">
-              {product.category?.name}
-            </Link>
-            <span aria-hidden>/</span>
-            <span className="font-medium text-forest-950">{product.title}</span>
-          </div>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+      {/* Breadcrumb */}
+      <div className="border-b border-sand-200 bg-sand-50">
+        <div className="section-container flex items-center gap-2 py-4 text-sm text-forest-700/70">
+          <Link href="/" className="transition-colors hover:text-forest-900">Home</Link>
+          <span aria-hidden>/</span>
+          <Link href="/products" className="transition-colors hover:text-forest-900">Products</Link>
+          <span aria-hidden>/</span>
+          <Link href={`/products?category=${product.category?.slug}`} className="transition-colors hover:text-forest-900">
+            {product.category?.name}
+          </Link>
+          <span aria-hidden>/</span>
+          <span className="font-medium text-forest-950">{product.title}</span>
         </div>
+      </div>
 
-        <section className="section-container grid gap-12 py-14 lg:grid-cols-2 lg:py-20">
-          {/* Gallery */}
-          <div className="relative aspect-[4/3] overflow-hidden rounded-3xl">
-            <AssetImage src={product.images[0]} alt={product.title} placeholderIcon="leaf" priority />
+      <section className="section-container grid gap-12 py-14 lg:grid-cols-2 lg:py-20">
+        {/* Gallery */}
+        <div className="relative aspect-[4/3] overflow-hidden rounded-3xl">
+          <AssetImage
+            src={product.images[0]}
+            alt={product.title}
+            placeholderIcon="leaf"
+            priority
+            fetchPriority="high"
+          />
             <div className="absolute left-4 top-4 flex max-w-[calc(100%-2rem)] flex-wrap gap-2">
               {tradeLabels.map((label) => (
                 <Badge key={label} tone="forest">{label}</Badge>

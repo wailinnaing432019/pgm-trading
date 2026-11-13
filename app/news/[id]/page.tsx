@@ -74,8 +74,75 @@ export default async function NewsDetailPage({
   const tags = post.tags.length > 0 ? post.tags : ["Market Update"];
   const readingTime = calculateReadingTime(post.body);
 
+  const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000").replace(/\/$/, "");
+  const cover = blogCover(post);
+  const articleImage = cover
+    ? cover.startsWith("http")
+      ? cover
+      : `${siteUrl}${cover}`
+    : undefined;
+
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "NewsArticle",
+        "@id": `${siteUrl}/news/${post.id}#article`,
+        headline: post.title,
+        description: post.excerpt,
+        image: articleImage ? [articleImage] : undefined,
+        datePublished: (post.publishedAt ?? post.createdAt).toISOString(),
+        dateModified: post.updatedAt.toISOString(),
+        author: {
+          "@type": "Person",
+          name: post.author?.name || "Pacific Global Myanmar Editorial Team",
+        },
+        publisher: {
+          "@type": "Organization",
+          name: "Pacific Global Myanmar",
+          logo: {
+            "@type": "ImageObject",
+            url: `${siteUrl}/api/brand-icon`,
+          },
+        },
+        mainEntityOfPage: {
+          "@type": "WebPage",
+          "@id": `${siteUrl}/news/${post.id}`,
+        },
+      },
+      {
+        "@type": "BreadcrumbList",
+        "@id": `${siteUrl}/news/${post.id}#breadcrumb`,
+        itemListElement: [
+          {
+            "@type": "ListItem",
+            position: 1,
+            name: "Home",
+            item: `${siteUrl}/`,
+          },
+          {
+            "@type": "ListItem",
+            position: 2,
+            name: "News & Media",
+            item: `${siteUrl}/news`,
+          },
+          {
+            "@type": "ListItem",
+            position: 3,
+            name: post.title,
+            item: `${siteUrl}/news/${post.id}`,
+          },
+        ],
+      },
+    ],
+  };
+
   return (
     <main className="bg-sand-50/50 min-h-screen">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       {/* Breadcrumb Navigation Header */}
       <div className="border-b border-sand-200/80 bg-white/80 backdrop-blur-xs">
         <div className="section-container flex items-center justify-between py-3.5 text-xs text-forest-700/70">
