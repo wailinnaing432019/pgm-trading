@@ -54,6 +54,10 @@ export function resolveSettings(meta: unknown): SiteSettings {
       resolved[key] = value.trim();
     }
   }
+  // Ensure the live deployment environment URL takes precedence over stale DB seeds (e.g. localhost)
+  if (process.env.NEXT_PUBLIC_SITE_URL) {
+    resolved.url = process.env.NEXT_PUBLIC_SITE_URL.replace(/\/+$/, "");
+  }
   return resolved;
 }
 

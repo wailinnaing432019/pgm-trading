@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Mail, MapPin, Phone } from "lucide-react";
+import { ExternalLink, Mail, MapPin, Phone } from "lucide-react";
 import { InquiryForm } from "@/components/contact/inquiry-form";
 import { AssetImage } from "@/components/ui/asset-image";
 import { getPageContent, getOffices, getSectionForDisplay, getSiteSettings } from "@/lib/queries";
@@ -76,6 +76,17 @@ export default async function ContactPage({
                       <Phone className="h-4 w-4 text-forest-700" aria-hidden /> WhatsApp {office.whatsapp}
                     </p>
                   ) : null}
+                  {office.latitude && office.longitude ? (
+                    <a
+                      href={`https://www.google.com/maps/search/?api=1&query=${office.latitude},${office.longitude}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-forest-700 hover:text-forest-950 underline underline-offset-2"
+                    >
+                      <MapPin className="h-3.5 w-3.5 text-forest-600" aria-hidden /> View on Google Maps
+                      <ExternalLink className="h-3 w-3 ml-0.5 opacity-70" aria-hidden />
+                    </a>
+                  ) : null}
                 </div>
               ))
             ) : (
@@ -96,18 +107,52 @@ export default async function ContactPage({
               </a>
             </div>
 
-            {offices.length > 0 ? (
-              <div className="card-surface overflow-hidden">
-                <iframe
-                  title={`${offices[0].name} — map`}
-                  src="https://www.google.com/maps?q=Yangon%2C%20Myanmar&output=embed"
-                  className="h-64 w-full border-0"
-                  loading="lazy"
-                  referrerPolicy="no-referrer-when-downgrade"
-                  allowFullScreen
-                />
-              </div>
-            ) : null}
+            {offices.length > 0 ? (() => {
+              const headOffice = offices[0];
+              const mapSrc =
+                headOffice.latitude && headOffice.longitude
+                  ? `https://maps.google.com/maps?q=${headOffice.latitude},${headOffice.longitude}&z=16&output=embed`
+                  : headOffice.address?.startsWith("http")
+                    ? headOffice.address
+                    : `https://www.google.com/maps?q=${encodeURIComponent(
+                        headOffice.address || headOffice.name || "Yangon, Myanmar"
+                      )}&output=embed`;
+
+              const externalMapUrl =
+                headOffice.latitude && headOffice.longitude
+                  ? `https://www.google.com/maps/search/?api=1&query=${headOffice.latitude},${headOffice.longitude}`
+                  : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+                      headOffice.address || headOffice.name || "Yangon, Myanmar"
+                    )}`;
+
+              return (
+                <div className="card-surface overflow-hidden">
+                  <div className="flex items-center justify-between border-b border-sand-200/80 bg-sand-100/60 px-4 py-2.5">
+                    <span className="flex items-center gap-1.5 text-xs font-semibold text-forest-900">
+                      <MapPin className="h-3.5 w-3.5 text-forest-700" aria-hidden />
+                      {headOffice.name}
+                    </span>
+                    <a
+                      href={externalMapUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-[11px] font-medium text-forest-700 transition-colors hover:text-forest-950"
+                    >
+                      <span>Directions</span>
+                      <ExternalLink className="h-3 w-3" aria-hidden />
+                    </a>
+                  </div>
+                  <iframe
+                    title={`${headOffice.name} — map`}
+                    src={mapSrc}
+                    className="h-64 w-full border-0"
+                    loading="lazy"
+                    referrerPolicy="no-referrer-when-downgrade"
+                    allowFullScreen
+                  />
+                </div>
+              );
+            })() : null}
           </div>
 
           {/* Form */}

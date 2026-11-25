@@ -108,6 +108,15 @@ export default async function RootLayout(props: LayoutProps<"/">) {
           addressLocality: "Yangon",
           addressCountry: "MM",
         },
+        ...(offices[0]?.latitude && offices[0]?.longitude
+          ? {
+              geo: {
+                "@type": "GeoCoordinates",
+                latitude: offices[0].latitude,
+                longitude: offices[0].longitude,
+              },
+            }
+          : {}),
         priceRange: "$$",
       },
     ],

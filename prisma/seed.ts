@@ -432,6 +432,8 @@ async function main() {
       phone: "+95 1 234 5678",
       email: "trade@pgm-trading.com",
       whatsapp: "+959 123 456 789",
+      latitude: 16.7725,
+      longitude: 96.1612,
       position: 0,
     },
     {
@@ -439,6 +441,8 @@ async function main() {
       name: "Branch — Mandalay",
       address: "No. 12, 89th Street, Chanayethazan Tsp, Mandalay, Myanmar",
       phone: "+95 2 456 7890",
+      latitude: 21.975,
+      longitude: 96.0836,
       position: 1,
     },
     {
@@ -446,6 +450,8 @@ async function main() {
       name: "Port & Distribution Hub — Thilawa",
       address: "Zone A, Thilawa SEZ, Thanlyin Tsp, Yangon, Myanmar",
       phone: "+95 1 888 4455",
+      latitude: 16.6575,
+      longitude: 96.2625,
       position: 2,
     },
   ]

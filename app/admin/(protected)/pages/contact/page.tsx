@@ -6,6 +6,7 @@ import { saveOffice, deleteOffice } from "@/lib/actions/admin";
 import { TrustComplianceForm } from "@/components/admin/trust-compliance-form";
 import { PageEditor } from "@/components/admin/page-editor";
 import { PageGroup } from "@/components/admin/page-group";
+import { MapPicker } from "@/components/admin/map-picker";
 
 export default async function AdminPagesContact() {
   const [sections, offices, settings] = await Promise.all([
@@ -130,6 +131,9 @@ export default async function AdminPagesContact() {
                       className="input-admin"
                     />
                   </div>
+                </div>
+                <div className="pt-2">
+                  <MapPicker initialLat={item?.latitude} initialLng={item?.longitude} />
                 </div>
               </>
             )}

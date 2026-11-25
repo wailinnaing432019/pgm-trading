@@ -683,6 +683,8 @@ export async function saveOffice(_prev: AdminActionState | null, formData: FormD
     phone: formData.get("phone"),
     email: formData.get("email"),
     whatsapp: formData.get("whatsapp"),
+    latitude: formData.get("latitude"),
+    longitude: formData.get("longitude"),
     position: formData.get("position") || 0,
     isActive: formData.get("isActive") === "on",
   });
@@ -698,6 +700,8 @@ export async function saveOffice(_prev: AdminActionState | null, formData: FormD
     phone: nullableTrimmed(rawData.phone),
     email: nullableTrimmed(rawData.email),
     whatsapp: nullableTrimmed(rawData.whatsapp),
+    latitude: rawData.latitude ?? null,
+    longitude: rawData.longitude ?? null,
   };
 
   if (id) {

@@ -178,6 +178,8 @@ model Office {
   phone     String?
   email     String?
   whatsapp  String?
+  latitude  Float?
+  longitude Float?
   position  Int      @default(0)
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())

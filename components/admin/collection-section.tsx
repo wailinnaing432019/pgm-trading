@@ -23,6 +23,10 @@ type Item = {
   year?: number;
   address?: string | null;
   phone?: string | null;
+  email?: string | null;
+  whatsapp?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
 };
 
 type Props<T extends Item> = {

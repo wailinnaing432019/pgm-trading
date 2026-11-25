@@ -109,11 +109,6 @@ export function Footer({
                 Request Official RFQ →
               </Link>
             </li>
-            <li>
-              <Link href="/admin" className="transition-colors hover:text-gold-300">
-                Admin Dashboard
-              </Link>
-            </li>
           </ul>
         </div>
 

@@ -109,6 +109,16 @@ export const officeSchema = z.object({
   phone: z.string().trim().max(40).optional().or(z.literal("")),
   email: z.string().trim().toLowerCase().max(120).optional().or(z.literal("")),
   whatsapp: z.string().trim().max(40).optional().or(z.literal("")),
+  latitude: z.preprocess((val) => {
+    if (val === "" || val === null || val === undefined) return null;
+    const num = Number(val);
+    return isNaN(num) ? undefined : num;
+  }, z.number().min(-90).max(90).nullable().optional()),
+  longitude: z.preprocess((val) => {
+    if (val === "" || val === null || val === undefined) return null;
+    const num = Number(val);
+    return isNaN(num) ? undefined : num;
+  }, z.number().min(-180).max(180).nullable().optional()),
   position: z.coerce.number().int().default(0),
   isActive: z.boolean().default(true),
 });
