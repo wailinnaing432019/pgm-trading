@@ -232,9 +232,13 @@ export async function saveProduct(_prev: AdminActionState | null, formData: Form
     } satisfies AdminActionState;
   }
 
-  revalidateContent();
+  await flashAdminToast({
+    type: "success",
+    text: id ? "Product updated successfully." : "New product published.",
+  });
+  revalidateAdminContent();
   revalidatePath("/admin/products");
-  return { ok: true } satisfies AdminActionState;
+  redirect("/admin/products");
 }
 
 export async function deleteProduct(formData: FormData) {

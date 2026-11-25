@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowUpRight, CalendarDays, Images, User } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { PageBanner } from "@/components/layout/page-banner";
 import { PostMediaCarousel } from "@/components/news/post-media-carousel";
 import { getBlogs } from "@/lib/queries";
 import { blogImages } from "@/lib/blog";
@@ -20,15 +21,11 @@ export default async function NewsPage() {
 
   return (
     <main>
-      <section className="border-b border-sand-200 bg-forest-950 py-14 text-cream md:py-20">
-        <div className="section-container">
-          <p className="text-sm font-semibold uppercase tracking-[0.22em] text-gold-400">News &amp; Media</p>
-          <h1 className="mt-3 font-serif text-4xl font-semibold md:text-5xl">Market insights &amp; updates</h1>
-          <p className="mt-4 max-w-2xl text-cream/70">
-            {total} published article{total === 1 ? "" : "s"} — trade outlooks, harvest reports and company news.
-          </p>
-        </div>
-      </section>
+      <PageBanner
+        eyebrow="News & Media"
+        title="Market insights & updates"
+        description={`${total} published article${total === 1 ? "" : "s"} — trade outlooks, harvest reports and company news.`}
+      />
 
       <section className="bg-sand-50 py-14 md:py-20">
         <div className="section-container">

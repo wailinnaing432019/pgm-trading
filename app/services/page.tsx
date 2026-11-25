@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { ArrowRight } from "lucide-react";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { Button } from "@/components/ui/button";
-import { AssetImage } from "@/components/ui/asset-image";
+import { PageBanner } from "@/components/layout/page-banner";
 import { SupplyChain } from "@/components/home/supply-chain";
 import { CtaBand } from "@/components/home/cta-band";
 import { getPageContent, getServices, getChecklist } from "@/lib/queries";
@@ -27,25 +27,12 @@ export default async function ServicesPage() {
 
   return (
     <main>
-      <section className="relative overflow-hidden border-b border-sand-200 bg-forest-950 py-14 text-cream md:py-20">
-        {hero?.image ? (
-          <div className="absolute inset-0" aria-hidden>
-            <AssetImage src={hero.image} alt="" className="opacity-30" />
-            <div className="absolute inset-0 bg-forest-950/70" />
-          </div>
-        ) : null}
-        <div className="section-container relative">
-          <p className="text-sm font-semibold uppercase tracking-[0.22em] text-gold-400">
-            {hero?.subtitle ?? "Services"}
-          </p>
-          <h1 className="mt-3 font-serif text-4xl font-semibold md:text-5xl">
-            {hero?.title ?? "Services & global logistics"}
-          </h1>
-          {hero?.body ? (
-            <p className="mt-4 max-w-2xl text-cream/70">{hero.body}</p>
-          ) : null}
-        </div>
-      </section>
+      <PageBanner
+        eyebrow={hero?.subtitle ?? "Services"}
+        title={hero?.title ?? "Services & global logistics"}
+        description={hero?.body}
+        image={hero?.image}
+      />
 
       {/* Service cards */}
       {services.length > 0 ? (

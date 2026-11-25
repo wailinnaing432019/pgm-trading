@@ -4,6 +4,7 @@ import { ProductCard } from "@/components/products/product-card";
 import { ProductFilters } from "@/components/products/product-filters";
 import { getCategories, getProducts, getTradeTypes } from "@/lib/queries";
 import { CategoryCard } from "@/components/categories/category-card";
+import { PageBanner } from "@/components/layout/page-banner";
 import { pageMetadata } from "@/lib/seo";
 
 export async function generateMetadata({
@@ -74,17 +75,11 @@ export default async function ProductsPage({
   return (
     <main>
         {/* Page hero */}
-        <section className="border-b border-sand-200 bg-forest-950 py-14 text-cream md:py-20">
-          <div className="grain pointer-events-none absolute inset-0" aria-hidden />
-          <div className="section-container relative">
-            <p className="text-sm font-semibold uppercase tracking-[0.22em] text-gold-400">Catalog</p>
-            <h1 className="mt-3 font-serif text-4xl font-semibold md:text-5xl">Products & Commodities</h1>
-            <p className="mt-4 max-w-2xl text-cream/70">
-              Graded exports and sourced imports, ready for enquiry. Filter by category, search by name,
-              or narrow by export/import availability.
-            </p>
-          </div>
-        </section>
+        <PageBanner
+          eyebrow="Catalog"
+          title="Products & Commodities"
+          description="Graded exports and sourced imports, ready for enquiry. Filter by category, search by name, or narrow by export/import availability."
+        />
 
         {/* Filters */}
         <section className="border-b border-sand-200 bg-cream py-6">

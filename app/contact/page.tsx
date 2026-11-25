@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { ExternalLink, Mail, MapPin, Phone } from "lucide-react";
 import { InquiryForm } from "@/components/contact/inquiry-form";
-import { AssetImage } from "@/components/ui/asset-image";
+import { PageBanner } from "@/components/layout/page-banner";
 import { getPageContent, getOffices, getSectionForDisplay, getSiteSettings } from "@/lib/queries";
 import { TradeCredentials } from "@/components/layout/trade-credentials";
 import { pageMetadata } from "@/lib/seo";
@@ -29,23 +29,12 @@ export default async function ContactPage({
 
   return (
     <main>
-      <section className="relative overflow-hidden border-b border-sand-200 bg-forest-950 py-14 text-cream md:py-20">
-        {hero?.image ? (
-          <div className="absolute inset-0" aria-hidden>
-            <AssetImage src={hero.image} alt="" className="opacity-30" />
-            <div className="absolute inset-0 bg-forest-950/70" />
-          </div>
-        ) : null}
-        <div className="section-container relative">
-          <p className="text-sm font-semibold uppercase tracking-[0.22em] text-gold-400">
-            {hero?.subtitle ?? "Contact"}
-          </p>
-          <h1 className="mt-3 font-serif text-4xl font-semibold md:text-5xl">
-            {hero?.title ?? "Let's move crops & cargo"}
-          </h1>
-          {hero?.body ? <p className="mt-4 max-w-2xl text-cream/70">{hero.body}</p> : null}
-        </div>
-      </section>
+      <PageBanner
+        eyebrow={hero?.subtitle ?? "Contact"}
+        title={hero?.title ?? "Let's move crops & cargo"}
+        description={hero?.body}
+        image={hero?.image}
+      />
 
       <section className="bg-sand-50 py-16">
         <div className="section-container grid gap-10 lg:grid-cols-[0.9fr_1.1fr]">

@@ -80,15 +80,13 @@ export function ProductForm({
   }, [product?.specs]);
 
   useEffect(() => {
-    if (state.ok) {
-      pushToast("success", product ? "Product updated successfully." : "New product published.");
-    } else if (state.error) {
+    if (state.error) {
       pushToast("error", state.error);
     } else if (state.fieldErrors) {
       const firstError = Object.values(state.fieldErrors).flat().find(Boolean);
       if (firstError) pushToast("error", firstError);
     }
-  }, [state, product, pushToast]);
+  }, [state, pushToast]);
 
   const toggleTradeType = (id: string) => {
     setSelectedTradeTypes((prev) => {

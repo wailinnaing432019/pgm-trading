@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Award, Eye, Goal } from "lucide-react";
 import { SectionHeading } from "@/components/ui/section-heading";
-import { AssetImage } from "@/components/ui/asset-image";
+import { PageBanner } from "@/components/layout/page-banner";
 import { getPageContent, getMilestones, getValues, getChecklist, getSiteSettings } from "@/lib/queries";
 import { getLucideIcon } from "@/lib/icons";
 import { TradeCredentials } from "@/components/layout/trade-credentials";
@@ -30,23 +30,12 @@ export default async function AboutPage() {
 
   return (
     <main>
-      <section className="relative overflow-hidden border-b border-sand-200 bg-forest-950 py-14 text-cream md:py-20">
-        {hero?.image ? (
-          <div className="absolute inset-0" aria-hidden>
-            <AssetImage src={hero.image} alt="" className="opacity-30" />
-            <div className="absolute inset-0 bg-forest-950/70" />
-          </div>
-        ) : null}
-        <div className="section-container relative">
-          <p className="text-sm font-semibold uppercase tracking-[0.22em] text-gold-400">
-            {hero?.subtitle ?? "About Us"}
-          </p>
-          <h1 className="mt-3 font-serif text-4xl font-semibold md:text-5xl">
-            {hero?.title ?? "Rooted in the land, geared for trade"}
-          </h1>
-          {hero?.body ? <p className="mt-4 max-w-2xl text-cream/70">{hero.body}</p> : null}
-        </div>
-      </section>
+      <PageBanner
+        eyebrow={hero?.subtitle ?? "About Us"}
+        title={hero?.title ?? "Rooted in the land, geared for trade"}
+        description={hero?.body}
+        image={hero?.image}
+      />
 
       {/* Story + mission/vision */}
       <section className="bg-cream py-16 md:py-24">
