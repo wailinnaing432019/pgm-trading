@@ -2,8 +2,12 @@
 
 import { useEffect, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight, ImagePlus, Loader2, Star, X } from "lucide-react";
-import { uploadImage, deleteUploadedMediaAction } from "@/lib/actions/upload";
+import { useUploadThing } from "@/lib/uploadthing";
+import { deleteUploadedMediaAction } from "@/lib/actions/upload";
 import { cn } from "@/lib/utils";
+
+const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
+const ALLOWED_EXT_RE = /\.(jpg|jpeg|png|webp|gif|avif|svg)$/i;
 
 type ImageUploaderProps = {
   name: string;
@@ -23,7 +27,8 @@ export function ImageUploader({
   onChange,
 }: ImageUploaderProps) {
   const [urls, setUrls] = useState<string[]>(initial);
-  const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
+  const [uploadingCount, setUploadingCount] = useState<number>(0);
+  const [progressPct, setProgressPct] = useState<number>(0);
   const [isDraggingFiles, setIsDraggingFiles] = useState(false);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
@@ -31,13 +36,21 @@ export function ImageUploader({
   const inputRef = useRef<HTMLInputElement>(null);
   const prevUrlsRef = useRef(urls);
 
+  const { startUpload, isUploading } = useUploadThing("imageUploader", {
+    uploadProgressGranularity: "coarse",
+    onUploadProgress: (pct) => setProgressPct(pct),
+    onUploadError: (err) => {
+      setError(err.message || "Upload failed. Check UploadThing configuration and try again.");
+    },
+  });
+
   useEffect(() => {
     if (prevUrlsRef.current === urls) return;
     prevUrlsRef.current = urls;
     onChange?.(urls);
   }, [urls, onChange]);
 
-  const uploading = progress !== null;
+  const uploading = isUploading || uploadingCount > 0;
 
   function removeAt(index: number) {
     const urlToRemove = urls[index];
@@ -64,7 +77,7 @@ export function ImageUploader({
   }
 
   async function handleFiles(files: FileList | File[] | null) {
-    if (!files || files.length === 0) return;
+    if (!files || files.length === 0 || uploading) return;
 
     const allFiles = Array.from(files);
     const remainingSlots = multiple ? Math.max(0, maxImages - urls.length) : 1;
@@ -76,27 +89,56 @@ export function ImageUploader({
     const queue = multiple ? allFiles.slice(0, remainingSlots) : [allFiles[0]];
     const truncated = multiple && allFiles.length > remainingSlots;
 
-    setError(null);
-    setProgress({ done: 0, total: queue.length });
+    const validQueue: File[] = [];
+    let validationError: string | null = null;
 
-    const uploaded: string[] = [];
-    let uploadError: string | null = null;
+    for (const file of queue) {
+      const isImage = file.type.startsWith("image/") || ALLOWED_EXT_RE.test(file.name);
+      if (!isImage) {
+        validationError = "Unsupported image type (use JPG, PNG, WebP, GIF, AVIF or SVG).";
+        continue;
+      }
+      if (file.size === 0) {
+        validationError = "The selected file is empty.";
+        continue;
+      }
+      if (file.size > MAX_IMAGE_BYTES) {
+        validationError = `"${file.name}" exceeds the 8 MB limit.`;
+        continue;
+      }
+      validQueue.push(file);
+    }
+
+    if (validQueue.length === 0) {
+      setError(validationError ?? "No valid image files selected.");
+      if (inputRef.current) inputRef.current.value = "";
+      return;
+    }
+
+    setError(validationError);
+    setProgressPct(0);
+    setUploadingCount(validQueue.length);
 
     try {
-      for (let i = 0; i < queue.length; i++) {
-        const fd = new FormData();
-        fd.append("file", queue[i]);
-        const result = await uploadImage(fd);
-        setProgress({ done: i + 1, total: queue.length });
-
-        if (!result.ok) {
-          uploadError = result.error;
-          continue;
+      const result = await startUpload(validQueue);
+      if (!result || result.length === 0) {
+        if (!validationError) {
+          setError((prev) => prev ?? "Upload did not return any file URLs. Please try again.");
         }
-        uploaded.push(result.url);
+        return;
       }
 
+      const uploaded = result
+        .map((file) => file.ufsUrl || file.url)
+        .filter((u): u is string => typeof u === "string" && u.length > 0);
+
       if (uploaded.length > 0) {
+        if (!multiple && urls[0] && urls[0] !== initial[0]) {
+          deleteUploadedMediaAction(urls[0]).catch((err) => {
+            console.warn("[image-uploader] Failed to clean up replaced unsaved image:", err);
+          });
+        }
+
         setUrls((prev) => {
           if (!multiple) return [uploaded[0]];
           const seen = new Set(prev);
@@ -109,15 +151,14 @@ export function ImageUploader({
         });
       }
 
-      if (uploadError) {
-        setError(uploadError);
-      } else if (truncated) {
+      if (!validationError && truncated) {
         setError(`Only the first ${remainingSlots} file(s) were uploaded (limit ${maxImages}).`);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Upload failed. Please try again.");
     } finally {
-      setProgress(null);
+      setUploadingCount(0);
+      setProgressPct(0);
       if (inputRef.current) inputRef.current.value = "";
     }
   }
@@ -180,9 +221,9 @@ export function ImageUploader({
           <>
             <Loader2 className="h-6 w-6 animate-spin text-forest-700" aria-hidden />
             <span className="text-sm font-medium text-forest-800">
-              {progress.total > 1
-                ? `Uploading ${progress.done} of ${progress.total}…`
-                : "Uploading…"}
+              {uploadingCount > 1
+                ? `Uploading ${uploadingCount} images… ${progressPct}%`
+                : `Uploading… ${progressPct}%`}
             </span>
           </>
         ) : (

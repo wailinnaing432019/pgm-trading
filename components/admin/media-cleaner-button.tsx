@@ -23,15 +23,15 @@ export function MediaCleanerCard() {
           <div>
             <div className="flex items-center gap-2">
               <h2 className="font-serif text-lg font-semibold text-forest-950">
-                Server Storage & Media Maintenance
+                Cloud Storage &amp; Media Maintenance
               </h2>
               <span className="inline-flex items-center gap-1 rounded-full bg-sand-200 px-2 py-0.5 text-[11px] font-semibold text-forest-800">
                 <Sparkles className="h-3 w-3 text-gold-600" /> Auto-clean enabled
               </span>
             </div>
             <p className="mt-1 text-xs text-forest-700/75 leading-relaxed">
-              When products or news articles are edited or deleted, replaced photos are automatically removed from disk.
-              You can also run a deep scan anytime to purge any leftover orphaned files and reclaim cloud server disk space.
+              When products, articles, or banners are edited or deleted, replaced photos are automatically removed from UploadThing.
+              You can also run a deep scan anytime to purge leftover orphaned files and stay within your 2 GB free-tier quota.
             </p>
           </div>
         </div>

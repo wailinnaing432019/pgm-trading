@@ -1601,8 +1601,8 @@ export async function moveCollectionItem(
 }
 
 /**
- * Server Action to manually purge unreferenced media files from public/media/
- * to free up cloud server storage.
+ * Server Action to manually purge unreferenced media files from UploadThing storage
+ * (and any local /media/ leftovers) to save free-tier quota.
  */
 export async function cleanOrphanedMediaAction(): Promise<AdminActionState> {
   await requireAdmin();
@@ -1612,7 +1612,7 @@ export async function cleanOrphanedMediaAction(): Promise<AdminActionState> {
     const mb = (result.freedBytes / (1024 * 1024)).toFixed(2);
     await flashAdminToast({
       type: "success",
-      text: `Cleaned ${result.deleted} orphaned file(s) and freed ${mb} MB of server storage.`,
+      text: `Cleaned ${result.deleted} orphaned file(s) and freed ${mb} MB of cloud storage.`,
     });
     revalidateAdminContent();
     return { ok: true };
