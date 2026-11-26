@@ -39,7 +39,7 @@ async function main() {
     [
       { label: "Export", description: "Sold internationally from Myanmar." },
       { label: "Import", description: "Distributed within Myanmar from abroad." },
-      { label: "Import & Export", description: "Traded in both directions." },
+      { label: "Sell", description: "Available for Buyers" },
       { label: "Rentable", description: "Available for hire — often machinery." },
     ].map((t) =>
       prisma.tradeType.upsert({
